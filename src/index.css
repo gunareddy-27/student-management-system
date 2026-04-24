@@ -1,23 +1,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --secondary: #06b6d4;
-  --accent: #a855f7;
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --secondary: #0ea5e9;
+  --accent: #d946ef;
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
   --bg-gradient: radial-gradient(circle at top left, #0f172a 0%, #020617 100%);
-  --card-bg: rgba(15, 23, 42, 0.6);
+  --card-bg: rgba(15, 23, 42, 0.4);
   --card-border: rgba(255, 255, 255, 0.08);
-  --text-main: #ffffff;
+  --text-main: #f8fafc;
   --text-muted: #cbd5e1;
   --text-dim: #94a3b8;
-  --glass-effect: blur(16px) saturate(200%);
-  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-  --border-radius: 16px;
-  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --glass-effect: blur(24px) saturate(150%);
+  --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+  --border-radius: 20px;
+  --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aurora-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--bg-gradient);
+}
+.aurora-blob {
+  position: absolute;
+  filter: blur(120px);
+  opacity: 0.6;
+  border-radius: 50%;
+  animation: move-aurora 20s infinite alternate ease-in-out;
+}
+.aurora-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: rgba(139, 92, 246, 0.3); }
+.aurora-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: rgba(217, 70, 239, 0.2); animation-delay: -5s; }
+.aurora-3 { top: 30%; left: 40%; width: 45vw; height: 45vw; background: rgba(14, 165, 233, 0.2); animation-delay: -10s; }
+
+@keyframes move-aurora {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(5%, 10%) scale(1.1); }
+  100% { transform: translate(-5%, -10%) scale(0.9); }
 }
 
 body.light {
