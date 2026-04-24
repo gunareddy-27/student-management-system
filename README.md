@@ -1,156 +1,85 @@
-# Student Management System (Frontend)
+# 🎓 SmarterCampus AI: The Next-Gen Student Management Ecosystem
 
-A modern React-based frontend for a student management system, featuring **role-based access**, **rich dashboards**, **CRUD operations**, **real-time activity feeds**, **analytics**, and **interactive timetables**.
-
-This project is designed as the UI layer for a backend API (default: `http://localhost:8080`), but it also includes a number of offline-friendly features that run entirely in the browser.
+SmarterCampus AI is a premium, enterprise-grade student management platform designed to transform traditional campus administration into a high-fidelity, predictive, and interactive digital experience. Built with **React 19**, **Framer Motion**, and **Node.js**, it features a stunning glassmorphism aesthetic and deep AI integration.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Key Modules & Intelligence Features
 
-### ✅ Access Control & Authentication
-- Lightweight auth (email + role) stored in `localStorage`.
-- Role switches between **Student** and **Admin** (controls UI / data privileges).
-- Protected routes (Dashboard, Student Management, Professor Timetable).
+### 🆔 1. Verified Smart Identity Hub
+*   **Interactive 3D ID Cards**: High-end identity cards with real-time parallax effects following mouse movement.
+*   **Dynamic Scannable QR Codes**: Individual QR codes generated for every student, encoding full profile data (Name, ID, Phone).
+*   **Verified Access Pass**: A dedicated mobile-wallet-style modal with a scanning laser animation for campus entry.
+*   **Access Logs**: Real-time tracking of student entries across different campus blocks (Main Gate, Library, etc.).
+*   **NFC Tap Simulation**: Digital simulation of physical card verification.
 
-### 📊 Dashboard & Live Feed
-- Dynamic welcome dashboard with **activity ticker**, **live system status**, and **quick action cards**.
-- Built-in **system health widget** (simulated CPU/RAM/uptime stats).
-- Role-aware navigation and UI.
+### 🎭 2. Smart Campus Event Hub
+*   **AI Discovery**: Recommends workshops, fests, and seminars based on the student's enrolled courses.
+*   **Live Countdown Visualization**: High-impact timers for major upcoming campus events.
+*   **Integrated RSVP**: Real-time attendance tracking and "Going" status management.
 
-### 🧑‍🎓 Student Management (Admin Only)
-- Create / Update / Delete student records.
-- Search, sort, filter, and paginate student lists.
-- Bulk delete students.
-- Detailed student profile modal (attendance progress bar, contact info).
-- Export student master data as **JSON**.
-- Activity feed logs recent actions in the current session.
+### 🍱 3. AI Canteen & Nutrition Tracker
+*   **Crowd Analysis**: AI-powered live indicators of "Queue Wait Times" based on historical peaks.
+*   **Smart Pre-ordering**: Integrated with the student's **Smart Wallet** for seamless meal booking.
+*   **Nutrition Insights**: Tracks daily calorie and protein intake against personalized health goals.
 
-### 📘 Course Management (Admin Only)
-- Create / Update / Delete course entries.
-- Search, sort, filter, and paginate courses.
-- Bulk delete courses.
-- Export course list as **JSON**.
-- Conflict detection when adding duplicate active courses.
+### 📄 4. AI Smart Resume Builder
+*   **Competency Mapping**: Automatically pulls student grades and courses to identify core professional skills (e.g., "Full Stack Development").
+*   **Industry-Standard Preview**: High-fidelity, clean resume layouts with PDF export capabilities.
 
-### 📈 Analytics
-- Visual dashboard with **Chart.js** (Pie, Bar, Doughnut, Line charts).
-- Real-time rendering of student vs course distribution.
+### 🗺️ 5. Interactive Campus Navigator
+*   **2.5D Digital Twin**: A custom-designed map of the campus helping students find classrooms, labs, and offices.
+*   **Block Intelligence**: Real-time information on building capacity, floor plans, and department locations.
 
-### 🗓 Timetable & Professor Management
-- Academic timetable view with **daily class blocks**.
-- Professor timetable view (attendance tracking, salary projection, audited hours).
-- Admins can toggle attendance for sessions and see derived salary adjustments.
+### 📊 6. AI Intelligence Dashboard (Bento Layout)
+*   **Campus Sentiment Analysis**: Tracks overall student mood and stress levels via NLP.
+*   **Predictive Analytics**: AI-driven "Pass Rate Impact" and "Risk Assessment" for student performance.
+*   **AI Activity Feed**: Real-time logging of NLP, OCR, and Prediction events across the system.
+*   **System Health Connectivity**: Pulsing live status indicator confirming database-AI linkage.
 
-### 📢 Broadcast System (Admin Only)
-- Send in-app broadcast messages to all users (stored in `localStorage`).
-- Supports **emergency alerts** with special styling.
-- Includes optional **image** and **video (YouTube/local)** embeds.
-
-### 🌙 Dark Mode
-- Theme toggle (light/dark) persisted across refresh via `localStorage`.
+### 📚 7. Smart Library & Document Vault
+*   **Fine Notification System**: Automated alerts for upcoming book returns and overdue fine calculations.
+*   **AI Document Vault**: Secure storage with confetti celebrations on successful file processing and metadata extraction.
 
 ---
 
-## 🧰 Tech Stack
+## 🧰 Modern Tech Stack
 
-- **React 19**
-- **React Router v7**
-- **Framer Motion** (animations)
-- **Chart.js** (data visualizations)
-- **Axios** (API requests)
-- **Create React App** boilerplate
+*   **Frontend**: React 19, Framer Motion (Animations), Chart.js (Analytics), Lucide-React (Iconography).
+*   **Backend**: Node.js, Express.js (RESTful API).
+*   **Styling**: Vanilla CSS with Glassmorphism, CSS Grid (Bento Layouts), and 3D Transforms.
+*   **Intelligence**: Simulated NLP/Predictive engines and QR Encoding services.
 
 ---
 
 ## 🏁 Getting Started
 
-### Prerequisites
-- Node.js (v18+ recommended)
-- npm (v9+ recommended)
+### 1. Prerequisites
+- Node.js (v18+)
+- npm (v9+)
 
-### Install
-
+### 2. Installation
 ```bash
+# Install dependencies for both Frontend and Backend
 npm install
 ```
 
-### Run
-
+### 3. Running the Ecosystem
 ```bash
+# Start the Backend Server (Port 8080)
+node server.js
+
+# Start the Frontend App (Port 3000)
 npm start
 ```
 
-Then open: http://localhost:3000
-
-> ✅ By default the frontend expects a backend API at `http://localhost:8080` with `/students` and `/courses` endpoints. If you don’t have a backend running, you can still explore the UI and client-side features.
-
 ---
 
-## 🧭 How To Use
-
-### 1) Sign Up / Login
-- Create an account (any email + password) and choose a role (Student or Admin).
-- Admin users unlock full CRUD and broadcast capabilities.
-
-### 2) Dashboard
-- Use the dashboard to navigate to **Student Management** or **Professor Timetable**.
-- The top ticker shows recent activity and broadcasts.
-
-### 3) Student Management (Admin)
-- Create or edit students (name, email, phone, attendance).
-- Use the search bar, sort headers, and attendance filters.
-- Bulk delete students using checkboxes.
-- View student profiles for progress details.
-
-### 4) Course Management (Admin)
-- Create or edit course entries (name, code, attendance threshold).
-- Search, sort, and page through the course list.
-- Export course data as JSON.
-
-### 5) Broadcasts (Admin)
-- Use the broadcast button on the management page.
-- Configure emergency broadcasts for high-visibility alerts.
-- Attach optional image/video URLs.
-
-### 6) Timetables
-- **Timetable view** shows a generic weekly schedule for students.
-- **Professor timetable** shows a configurable schedule for a selected professor.
-- Admins can toggle attendance and see derived salary and auditing stats.
-
----
-
-## 🗂 Folder Structure (Overview)
-
-```
-src/
-  App.js                # Main router + app shell
-  Dashboard.js          # Landing dashboard
-  Login.js / Signup.js  # Basic auth UI
-  ProtectedRoute.js     # Route gate for authenticated users
-  context/              # Theme provider
-  components/           # Reusable UI components (tables, charts, forms)
-  styles/               # Theme CSS / dark mode
-```
-
----
-
-## 📝 Notes
-
-- This frontend is intentionally self-contained and uses `localStorage` for session state and broadcasts.
-- If you connect it to a real backend, ensure that it provides REST endpoints:
-  - `GET /students`, `POST /students`, `PUT /students/:id`, `DELETE /students/:id`
-  - `GET /courses`, `POST /courses`, `PUT /courses/:id`, `DELETE /courses/:id`
-
----
-
-## ✅ Next Improvements (Optional)
-- Add real authentication + backend integration (JWT).
-- Replace localStorage persistence with database-backed APIs.
-- Add role-based access control on the server.
-- Add drag-and-drop timetable scheduling.
+## 🧭 Developer Information
+*   **Connectivity**: The app features a live status indicator. Ensure `server.js` is running on `localhost:8080` for full AI features.
+*   **Role-Based UI**: Switch between **Admin** and **Student** roles in the Dashboard to unlock management or personal utilities.
 
 ---
 
 ## 📄 License
-MIT
+MIT © 2026 SmarterCampus AI Team.

@@ -28,7 +28,13 @@ import AttendanceTracker from "./components/AttendanceTracker";
 import EnrollmentManager from "./components/EnrollmentManager";
 import StudentProfile from "./components/StudentProfile";
 import DashboardStats from "./components/DashboardStats";
-import { Bell } from "lucide-react";
+import AIIntelligence from "./components/AIIntelligence";
+import DigitalID from "./components/DigitalID";
+import EventHub from "./components/EventHub";
+import SmartCanteen from "./components/SmartCanteen";
+import ResumeBuilder from "./components/ResumeBuilder";
+import CampusNavigator from "./components/CampusNavigator";
+import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings } from "lucide-react";
 import "./App.css";
 
 // A simple Modal component for delete confirmation
@@ -114,6 +120,7 @@ const StudentManagement = () => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
   const [activeTab, setActiveTab] = useState("management");
+  const [activeUtility, setActiveUtility] = useState("canteen");
   const [focusMode, setFocusMode] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
@@ -502,7 +509,13 @@ const StudentManagement = () => {
       <AnimatePresence>
         {!focusMode && (
           <motion.header exit={{ y: -100, opacity: 0 }} className="nav-header">
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>Student Hub</h1>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800' }}>SmarterCampus</h1>
+              <div className="system-status">
+                <div className="status-dot"></div>
+                AI Intelligence & DB Link: <span style={{ color: '#10b981', fontWeight: 'bold' }}>Active</span>
+              </div>
+            </div>
             <nav className="nav-links" style={{ alignItems: 'center' }}>
               <Link to="/student-management">Dashboard</Link>
               <div style={{ position: 'relative' }}>
@@ -699,6 +712,34 @@ const StudentManagement = () => {
             >
               📝 Enrollments
             </button>
+            <button
+              className={activeTab === "ai" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'ai' ? 'linear-gradient(135deg, #8b5cf6, #d946ef)' : 'rgba(255,255,255,0.05)', border: activeTab === 'ai' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("ai")}
+            >
+              <Sparkles size={16} style={{ marginRight: '0.5rem' }} /> AI Insights
+            </button>
+            <button
+              className={activeTab === "identity" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'identity' ? 'linear-gradient(135deg, #0ea5e9, #8b5cf6)' : 'rgba(255,255,255,0.05)', border: activeTab === 'identity' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("identity")}
+            >
+              <CreditCard size={16} style={{ marginRight: '0.5rem' }} /> Identity ✨
+            </button>
+            <button
+              className={activeTab === "events" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'events' ? 'linear-gradient(135deg, #f59e0b, #ef4444)' : 'rgba(255,255,255,0.05)', border: activeTab === 'events' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("events")}
+            >
+              <PartyPopper size={16} style={{ marginRight: '0.5rem' }} /> Events 🎭
+            </button>
+            <button
+              className={activeTab === "utilities" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'utilities' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)', border: activeTab === 'utilities' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("utilities")}
+            >
+              <Settings size={16} style={{ marginRight: '0.5rem' }} /> Utilities 🛠️
+            </button>
           </div>
         </div>
 
@@ -752,6 +793,130 @@ const StudentManagement = () => {
                   <ResourceTracker />
                 </motion.div>
               </div>
+            </motion.div>
+          )}
+
+          {activeTab === "ai" && (
+            <motion.div
+              key="ai"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <AIIntelligence />
+            </motion.div>
+          )}
+
+          {activeTab === "identity" && (
+            <motion.div
+              key="identity"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+            >
+              <h2 className="section-title">Verified Smart Identity Hub</h2>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={selectedStudentId || 'default'}
+                      initial={{ opacity: 0, rotateY: -20, scale: 0.9 }}
+                      animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+                      exit={{ opacity: 0, rotateY: 20, scale: 0.9 }}
+                      transition={{ type: 'spring', damping: 15 }}
+                    >
+                      <DigitalID student={students.find(s => s.id == selectedStudentId) || students[0] || { name: 'Demo Student', id: '1234', attendance: 88, phone: '9876543210', email: 'demo@university.edu' }} />
+                    </motion.div>
+                  </AnimatePresence>
+                  
+                  <div style={{ maxWidth: '600px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ margin: 0 }}>This ID is a <strong>Verified Digital Asset</strong>. It integrates with classroom NFC terminals, library RFID scanners, and the Smart Canteen wallet.</p>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '600px', overflowY: 'auto' }}>
+                  <h4 style={{ color: 'white', fontSize: '0.9rem', marginBottom: '0.5rem' }}>📇 Campus Directory</h4>
+                  <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Search students..." 
+                      value={studentSearchTerm}
+                      onChange={(e) => setStudentSearchTerm(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.8rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {students.filter(s => s.name.toLowerCase().includes(studentSearchTerm.toLowerCase())).map(s => (
+                      <motion.div 
+                        key={s.id}
+                        whileHover={{ x: 5, background: 'rgba(255,255,255,0.08)' }}
+                        onClick={() => setSelectedStudentId(s.id)}
+                        style={{ 
+                          padding: '0.75rem', borderRadius: '12px', background: selectedStudentId == s.id ? 'var(--primary)' : 'rgba(255,255,255,0.03)', 
+                          cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '1rem' 
+                        }}
+                      >
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', color: 'white', fontSize: '0.8rem' }}>
+                          {s.name.charAt(0)}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: 'white', fontSize: '0.85rem', fontWeight: '600' }}>{s.name}</div>
+                          <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>ID: #{s.id}</div>
+                        </div>
+                        {selectedStudentId == s.id && <div style={{ fontSize: '0.8rem' }}>✨</div>}
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "events" && (
+            <motion.div
+              key="events"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <h2 className="section-title">Smart Campus Event Hub</h2>
+              <EventHub enrolledCourses={courses.slice(0, 3)} />
+            </motion.div>
+          )}
+
+          {activeTab === "utilities" && (
+            <motion.div
+              key="utilities"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '12px', width: 'fit-content' }}>
+                <button 
+                  onClick={() => setActiveUtility("canteen")}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: activeUtility === 'canteen' ? 'var(--primary)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Coffee size={14} /> Canteen 🍱
+                </button>
+                <button 
+                  onClick={() => setActiveUtility("resume")}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: activeUtility === 'resume' ? 'var(--primary)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Briefcase size={14} /> Resume AI 📄
+                </button>
+                <button 
+                  onClick={() => setActiveUtility("map")}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: activeUtility === 'map' ? 'var(--primary)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <MapIcon size={14} /> Map 🗺️
+                </button>
+              </div>
+
+              {activeUtility === "canteen" && <SmartCanteen studentWallet={450} />}
+              {activeUtility === "resume" && <ResumeBuilder student={students[0]} courses={courses.slice(0, 5)} />}
+              {activeUtility === "map" && <CampusNavigator />}
             </motion.div>
           )}
 

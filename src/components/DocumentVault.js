@@ -10,6 +10,8 @@ const DocumentVault = () => {
     { name: "Physics_Assignment_1.docx", size: "450 KB", timestamp: "5 hours ago" },
   ]);
 
+  const fileInputRef = React.useRef(null);
+
   const handleDragEnter = (e) => { e.preventDefault(); setIsDragActive(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragActive(false); };
   const handleDrop = (e) => {
@@ -17,22 +19,40 @@ const DocumentVault = () => {
     setIsDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const newFile = e.dataTransfer.files[0];
-      setFiles([{ name: newFile.name, size: `${(newFile.size / 1024).toFixed(1)} KB`, timestamp: "Just now" }, ...files]);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      processFile(newFile);
     }
+  };
+
+  const onFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFile(e.target.files[0]);
+    }
+  };
+
+  const processFile = (file) => {
+    setFiles([{ name: file.name, size: `${(file.size / 1024).toFixed(1)} KB`, timestamp: "Just now" }, ...files]);
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
   };
 
   return (
     <div style={{ display: 'flex', gap: '2rem', height: '100%', flexDirection: 'column' }}>
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        onChange={onFileSelect} 
+      />
       <motion.div
         onDragEnter={handleDragEnter}
         onDragOver={(e) => e.preventDefault()}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={() => fileInputRef.current.click()}
+        whileHover={{ scale: 1.01 }}
         animate={{
           borderColor: isDragActive ? "var(--primary)" : "rgba(255,255,255,0.2)",
           backgroundColor: isDragActive ? "rgba(99, 102, 241, 0.1)" : "rgba(255,255,255,0.02)"
