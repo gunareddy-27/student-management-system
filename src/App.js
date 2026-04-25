@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { QRCodeCanvas } from "qrcode.react";
 import ThemeProvider from "./context/ThemeContext";
 import StudentForm from "./components/StudentForm";
 import StudentTable from "./components/StudentTable";
@@ -34,7 +35,10 @@ import EventHub from "./components/EventHub";
 import SmartCanteen from "./components/SmartCanteen";
 import ResumeBuilder from "./components/ResumeBuilder";
 import CampusNavigator from "./components/CampusNavigator";
-import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings } from "lucide-react";
+import PlacementHub from "./components/PlacementHub";
+import FacultyConnect from "./components/FacultyConnect";
+import ExamIntelligence from "./components/ExamIntelligence";
+import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings, Target, Microscope, Landmark, ShieldCheck } from "lucide-react";
 import "./App.css";
 
 // A simple Modal component for delete confirmation
@@ -656,7 +660,7 @@ const StudentManagement = () => {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <h2 style={{ margin: 0, color: 'white' }}>{isAdmin ? "Administrative Command Center" : "Dashboard Overview"}</h2>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {isAdmin && (
               <>
                 <button className="primary" style={{ width: 'auto' }} onClick={handleBroadcast}>📢 Broadcast</button>
@@ -732,6 +736,27 @@ const StudentManagement = () => {
               onClick={() => setActiveTab("events")}
             >
               <PartyPopper size={16} style={{ marginRight: '0.5rem' }} /> Events 🎭
+            </button>
+            <button
+              className={activeTab === "placement" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'placement' ? 'linear-gradient(135deg, #8b5cf6, #3b82f6)' : 'rgba(255,255,255,0.05)', border: activeTab === 'placement' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("placement")}
+            >
+              <Target size={16} style={{ marginRight: '0.5rem' }} /> Placement 🎯
+            </button>
+            <button
+              className={activeTab === "research" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'research' ? 'linear-gradient(135deg, #ec4899, #8b5cf6)' : 'rgba(255,255,255,0.05)', border: activeTab === 'research' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("research")}
+            >
+              <Microscope size={16} style={{ marginRight: '0.5rem' }} /> Research 🔬
+            </button>
+            <button
+              className={activeTab === "exams" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'exams' ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : 'rgba(255,255,255,0.05)', border: activeTab === 'exams' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("exams")}
+            >
+              <ShieldCheck size={16} style={{ marginRight: '0.5rem' }} /> Mock Exams 📝
             </button>
             <button
               className={activeTab === "utilities" ? "primary" : "secondary"}
@@ -818,7 +843,7 @@ const StudentManagement = () => {
               <h2 className="section-title">Verified Smart Identity Hub</h2>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={selectedStudentId || 'default'}
@@ -831,6 +856,27 @@ const StudentManagement = () => {
                     </motion.div>
                   </AnimatePresence>
                   
+                  {/* Dynamic QR Access Key Section */}
+                  <motion.div 
+                    key={`qr-${selectedStudentId}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ 
+                      background: 'white', padding: '1.5rem', borderRadius: '24px', 
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.4)', border: '4px solid #6366f1'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.7rem', color: '#1e293b', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>Verified Access Key</div>
+                    <QRCodeCanvas 
+                      value={`STUDENT_ID:${selectedStudentId || students[0]?.id || 'DEMO'}|NAME:${students.find(s => s.id == selectedStudentId)?.name || students[0]?.name || 'Demo'}`}
+                      size={140}
+                      level="H"
+                      includeMargin={false}
+                    />
+                    <div style={{ fontSize: '0.6rem', color: '#6366f1', fontWeight: 'bold' }}>ID: #{selectedStudentId || students[0]?.id || '----'}</div>
+                  </motion.div>
+
                   <div style={{ maxWidth: '600px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <p style={{ margin: 0 }}>This ID is a <strong>Verified Digital Asset</strong>. It integrates with classroom NFC terminals, library RFID scanners, and the Smart Canteen wallet.</p>
                   </div>
@@ -848,7 +894,7 @@ const StudentManagement = () => {
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {students.filter(s => s.name.toLowerCase().includes(studentSearchTerm.toLowerCase())).map(s => (
+                    {students.filter(s => (s.name || '').toLowerCase().includes(studentSearchTerm.toLowerCase())).map(s => (
                       <motion.div 
                         key={s.id}
                         whileHover={{ x: 5, background: 'rgba(255,255,255,0.08)' }}
@@ -859,7 +905,7 @@ const StudentManagement = () => {
                         }}
                       >
                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', color: 'white', fontSize: '0.8rem' }}>
-                          {s.name.charAt(0)}
+                          {(s.name || 'S').charAt(0)}
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ color: 'white', fontSize: '0.85rem', fontWeight: '600' }}>{s.name}</div>
@@ -907,6 +953,18 @@ const StudentManagement = () => {
                   <Briefcase size={14} /> Resume AI 📄
                 </button>
                 <button 
+                  onClick={() => setActiveUtility("placement")}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: activeUtility === 'placement' ? 'var(--primary)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Target size={14} /> Placement 🎯
+                </button>
+                <button 
+                  onClick={() => setActiveUtility("research")}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: activeUtility === 'research' ? 'var(--primary)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Microscope size={14} /> Research 🔬
+                </button>
+                <button 
                   onClick={() => setActiveUtility("map")}
                   style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: activeUtility === 'map' ? 'var(--primary)' : 'transparent', color: 'white', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
@@ -916,6 +974,8 @@ const StudentManagement = () => {
 
               {activeUtility === "canteen" && <SmartCanteen studentWallet={450} />}
               {activeUtility === "resume" && <ResumeBuilder student={students[0]} courses={courses.slice(0, 5)} />}
+              {activeUtility === "placement" && <PlacementHub />}
+              {activeUtility === "research" && <FacultyConnect />}
               {activeUtility === "map" && <CampusNavigator />}
             </motion.div>
           )}
@@ -1094,6 +1154,36 @@ const StudentManagement = () => {
 
         {/* NEW FEATURE TABS */}
         <AnimatePresence mode="wait">
+          {activeTab === "events" && (
+            <motion.div key="events" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <EventHub />
+            </motion.div>
+          )}
+
+          {activeTab === "placement" && (
+            <motion.div key="placement" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <div className="card">
+                <PlacementHub />
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "research" && (
+            <motion.div key="research" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              <section className="card">
+                <FacultyConnect />
+              </section>
+            </motion.div>
+          )}
+
+          {activeTab === "exams" && (
+            <motion.div key="exams" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              <section className="card">
+                <ExamIntelligence />
+              </section>
+            </motion.div>
+          )}
+
           {activeTab === "fees" && (
             <motion.div key="fees" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <section className="card">

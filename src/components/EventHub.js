@@ -40,7 +40,10 @@ const EventHub = ({ enrolledCourses = [] }) => {
   const suggestedEvents = events.filter(ev => {
     // Check if event tags match enrolled course names
     const courseMatch = enrolledCourses.some(c => 
-      ev.tags.some(tag => c.course_name?.toLowerCase().includes(tag.toLowerCase()) || c.course_code?.toLowerCase().includes(tag.toLowerCase()))
+      ev.tags.some(tag => 
+        (c.course_name || '').toLowerCase().includes((tag || '').toLowerCase()) || 
+        (c.course_code || '').toLowerCase().includes((tag || '').toLowerCase())
+      )
     );
     return courseMatch || ev.type === 'Fest'; // Fests are always suggested
   });

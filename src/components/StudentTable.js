@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const StudentTable = ({ students, onEdit, onDelete, onBulkDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,8 +39,8 @@ const StudentTable = ({ students, onEdit, onDelete, onBulkDelete }) => {
   const filteredStudents = useMemo(() => {
     let data = students.filter(
       (s) =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.email.toLowerCase().includes(searchTerm.toLowerCase())
+        (s.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (s.email || '').toLowerCase().includes((searchTerm || '').toLowerCase())
     );
 
     data = data.filter((student) => {
@@ -215,7 +216,7 @@ const StudentTable = ({ students, onEdit, onDelete, onBulkDelete }) => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="glass-card"
-              style={{ maxWidth: '500px', padding: '2.5rem', textAlign: 'left' }}
+              style={{ maxWidth: '600px', padding: '2.5rem', textAlign: 'left' }}
               onClick={e => e.stopPropagation()}
             >
               <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -223,18 +224,42 @@ const StudentTable = ({ students, onEdit, onDelete, onBulkDelete }) => {
                 <button onClick={() => setViewingStudent(null)} className="secondary" style={{ width: 'auto', padding: '0.5rem' }}>✕</button>
               </header>
               
-              <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
-                <div style={{ 
-                  width: '80px', height: '80px', borderRadius: '24px', 
-                  background: 'linear-gradient(135deg, var(--primary), var(--accent))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold'
-                }}>
-                  {viewingStudent.name.charAt(0)}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '2rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', gap: '2rem' }}>
+                  <div style={{ 
+                    width: '80px', height: '80px', borderRadius: '24px', 
+                    background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold'
+                  }}>
+                    {(viewingStudent.name || 'S').charAt(0)}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, background: 'none', WebkitTextFillColor: 'white' }}>{viewingStudent.name}</h3>
+                    <p style={{ color: 'var(--text-dim)' }}>Full-time Student</p>
+                    <p style={{ color: 'var(--primary)', fontWeight: '600' }}>ID: #STU-{viewingStudent.id}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, background: 'none', WebkitTextFillColor: 'white' }}>{viewingStudent.name}</h3>
-                  <p style={{ color: 'var(--text-dim)' }}>Full-time Student</p>
-                  <p style={{ color: 'var(--primary)', fontWeight: '600' }}>ID: #STU-{viewingStudent.id}</p>
+
+                <div style={{ 
+                  background: 'white', padding: '10px', borderRadius: '12px', 
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                }}>
+                  <QRCodeCanvas 
+                    value={`STUDENT_ID:${viewingStudent.id}|NAME:${viewingStudent.name}`} 
+                    size={120}
+                    level="H"
+                    includeMargin={false}
+                    imageSettings={{
+                      src: "https://mru.edu.in/wp-content/uploads/2021/04/logo.png",
+                      x: undefined,
+                      y: undefined,
+                      height: 24,
+                      width: 24,
+                      excavate: true,
+                    }}
+                  />
+                  <span style={{ fontSize: '0.6rem', color: '#1e293b', fontWeight: 'bold' }}>SCAN PASSPORT</span>
                 </div>
               </div>
 

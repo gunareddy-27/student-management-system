@@ -92,9 +92,9 @@ const LibraryManagement = () => {
   };
 
   const filtered = books.filter(b =>
-    b.book_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.isbn.toLowerCase().includes(searchTerm.toLowerCase())
+    (b.book_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.author || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.isbn || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const available = books.filter(b => !b.student_id).length;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const StudentProfile = ({ studentId, onClose }) => {
   const [profile, setProfile] = useState(null);
@@ -41,6 +42,7 @@ const StudentProfile = ({ studentId, onClose }) => {
     { id: 'fees', label: '💰 Fees' },
     { id: 'library', label: '📖 Library' },
     { id: 'attendance', label: '📋 Attendance' },
+    { id: 'qrpass', label: '📇 QR Pass' },
   ];
 
   return (
@@ -184,6 +186,28 @@ const StudentProfile = ({ studentId, onClose }) => {
                 </div>
               ))}
             </div>
+          )}
+
+          {activeSection === 'qrpass' && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', padding: '2rem' }}
+            >
+              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', border: '4px solid #6366f1' }}>
+                <QRCodeCanvas 
+                  value={`STUDENT_ID:${student.id}|NAME:${student.name}|STATUS:VERIFIED`}
+                  size={200}
+                  level="H"
+                />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{ color: 'white', margin: '0 0 0.5rem 0' }}>Verified Smart Passport</h4>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', maxWidth: '300px' }}>
+                  Scan this code at campus gates, libraries, or canteens for instant identity and payment verification.
+                </p>
+              </div>
+            </motion.div>
           )}
         </div>
       </motion.div>

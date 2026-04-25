@@ -5,10 +5,25 @@ import { Shield, MapPin, Award, BookOpen, Clock, Zap } from 'lucide-react';
 const DigitalID = ({ student }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isTapping, setIsTapping] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(Math.random().toString(36).substring(7));
+  const [timeLeft, setTimeLeft] = useState(60);
   const [scanLogs, setScanLogs] = useState([
     { location: 'Main Gate', time: '08:45 AM', type: 'Entry' },
     { location: 'Central Library', time: '11:20 AM', type: 'Access' }
   ]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setRefreshKey(Math.random().toString(36).substring(7));
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -40,21 +55,33 @@ const DigitalID = ({ student }) => {
   const [showLargeQR, setShowLargeQR] = useState(false);
 
   const QRSquare = ({ size = 100 }) => {
-    const qrData = encodeURIComponent(`Name: ${student?.name}\nID: ${student?.id}\nPhone: ${student?.phone}\nStatus: Verified Student`);
+    const qrData = encodeURIComponent(`ID: ${student?.id}\nToken: ${refreshKey}\nTS: ${new Date().getTime()}\nStatus: Verified`);
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${qrData}`;
     
     return (
-      <div style={{
-        width: `${size}px`, height: `${size}px`, background: 'white', borderRadius: '12px',
-        padding: '8px', position: 'relative', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center',
-        boxShadow: size > 100 ? '0 0 30px rgba(59, 130, 246, 0.3)' : 'none'
-      }}>
-        <motion.div 
-          animate={{ y: [0, size - 20, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'rgba(59, 130, 246, 0.8)', zIndex: 5, boxShadow: '0 0 12px #3b82f6' }}
-        />
-        <img src={qrUrl} alt="Student QR" style={{ width: '100%', height: '100%' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{
+          width: `${size}px`, height: `${size}px`, background: 'white', borderRadius: '12px',
+          padding: '8px', position: 'relative', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          boxShadow: size > 100 ? '0 0 30px rgba(59, 130, 246, 0.3)' : 'none'
+        }}>
+          <motion.div 
+            animate={{ y: [0, size - 20, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'rgba(59, 130, 246, 0.8)', zIndex: 5, boxShadow: '0 0 12px #3b82f6' }}
+          />
+          <img src={qrUrl} alt="Student QR" style={{ width: '100%', height: '100%' }} />
+        </div>
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+            <motion.div 
+              initial={false}
+              animate={{ width: `${(timeLeft / 60) * 100}%` }}
+              style={{ height: '100%', background: timeLeft < 10 ? '#ef4444' : '#10b981' }}
+            />
+          </div>
+          <span style={{ fontSize: '0.6rem', color: timeLeft < 10 ? '#ef4444' : 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>{timeLeft}s</span>
+        </div>
       </div>
     );
   };
@@ -81,7 +108,9 @@ const DigitalID = ({ student }) => {
               <div style={{ marginTop: '2rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
                 <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '0.5rem' }}>{student?.name}</div>
                 <div>ID: #{student?.id}</div>
-                <div style={{ marginTop: '1rem', color: '#10b981', fontWeight: 'bold' }}>SCAN READY</div>
+                <div style={{ marginTop: '1rem', color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <Zap size={14} /> DYNAMIC ACCESS ACTIVE
+                </div>
               </div>
               <button 
                 onClick={() => setShowLargeQR(false)}
@@ -125,7 +154,7 @@ const DigitalID = ({ student }) => {
                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                 style={{ whiteSpace: 'nowrap', fontSize: '0.5rem', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '2px' }}
               >
-                SECURE ACCESS KEY: {student?.id || '0000'} - VERIFIED {new Date().toLocaleDateString()} - ENCRYPTED CAMPUS ID - DO NOT DUPLICATE - 
+                SECURE ACCESS KEY: {student?.id || '0000'} - TOKEN: {refreshKey} - VERIFIED {new Date().toLocaleDateString()} - ANTI-SPOOF ACTIVE - 
               </motion.div>
             </div>
 
@@ -169,15 +198,15 @@ const DigitalID = ({ student }) => {
                 <div style={{ fontSize: '0.75rem', color: 'white', marginBottom: '1rem' }}>
                   <div style={{ marginBottom: '0.5rem' }}>📞 Phone: +91 {student?.phone}</div>
                   <div style={{ marginBottom: '0.5rem' }}>📧 Email: {student?.email}</div>
-                  <div>📍 Res: Hyderabad, IN</div>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginTop: '2rem' }}>
-                  This card is property of Malla Reddy University. If found, please return to Admin Block.
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                    <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }} />
+                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>OTP-QR ACTIVE</span>
+                  </div>
                 </div>
              </div>
              <div style={{ width: '35%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                 <QRSquare size={100} />
-                <div style={{ fontSize: '0.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>SCAN FOR STUDENT<br/>FULL DATA VERIFICATION</div>
+                <div style={{ fontSize: '0.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>DYNAMIC TOKEN<br/>EXPIRES EVERY 60S</div>
              </div>
           </div>
         </motion.div>
