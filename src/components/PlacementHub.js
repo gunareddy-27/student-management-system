@@ -12,7 +12,9 @@ const PlacementHub = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showExpModal, setShowExpModal] = useState(false);
+  const [showDriveModal, setShowDriveModal] = useState(false);
   const [newExp, setNewExp] = useState({ company: '', role: '', experience_text: '', rating: 5 });
+  const [newDrive, setNewDrive] = useState({ company: '', role: '', package: '', drive_date: '', eligibility_criteria: '' });
 
   const baseUrl = 'http://localhost:8080';
   const studentId = localStorage.getItem('userId') || 1;
@@ -85,6 +87,16 @@ const PlacementHub = () => {
     } catch (e) { console.error(e); }
   };
 
+  const handleCreateDrive = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${baseUrl}/placements/drives`, newDrive);
+      setShowDriveModal(false);
+      setNewDrive({ company: '', role: '', package: '', drive_date: '', eligibility_criteria: '' });
+      fetchData();
+    } catch (e) { console.error(e); }
+  };
+
   if (loading && !stats) return <div className="loading-spinner">Calibrating Placement Intelligence...</div>;
 
   return (
@@ -149,26 +161,41 @@ const PlacementHub = () => {
         ))}
       </div>
 
-      {/* Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '16px', width: 'fit-content' }}>
-        {['drives', 'tracker', 'experiences', 'roadmaps'].map(tab => (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '16px', width: 'fit-content' }}>
+          {['drives', 'tracker', 'experiences', 'roadmaps'].map(tab => (
+            <button 
+              key={tab} 
+              onClick={() => setActiveTab(tab)}
+              style={{ 
+                background: activeTab === tab ? 'var(--primary)' : 'transparent',
+                color: activeTab === tab ? 'white' : 'var(--text-dim)',
+                padding: '0.7rem 1.8rem',
+                borderRadius: '12px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '700',
+                textTransform: 'capitalize',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}>
+              {tab === 'tracker' ? 'My Tracker' : tab}
+            </button>
+          ))}
+        </div>
+
+        {isAdmin && activeTab === 'drives' && (
           <button 
-            key={tab} 
-            onClick={() => setActiveTab(tab)}
+            onClick={() => setShowDriveModal(true)}
             style={{ 
-              background: activeTab === tab ? 'var(--primary)' : 'transparent',
-              color: activeTab === tab ? 'white' : 'var(--text-dim)',
-              padding: '0.7rem 1.8rem',
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: '700',
-              textTransform: 'capitalize',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              padding: '0.8rem 1.8rem', borderRadius: '14px', border: 'none', 
+              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', 
+              color: 'white', fontWeight: 'bold', cursor: 'pointer', 
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)'
             }}>
-            {tab === 'tracker' ? 'My Tracker' : tab}
+            <Plus size={20} /> Initialize New Drive
           </button>
-        ))}
+        )}
       </div>
 
       <AnimatePresence mode="wait">
@@ -364,6 +391,58 @@ const PlacementHub = () => {
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                   <button type="submit" style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' }}>Submit Experience</button>
                   <button type="button" onClick={() => setShowExpModal(false)} style={{ padding: '1.2rem', borderRadius: '16px', background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Drive Creation Modal */}
+      <AnimatePresence>
+        {showDriveModal && (
+          <div className="modal-backdrop" onClick={() => setShowDriveModal(false)} style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              onClick={e => e.stopPropagation()} style={{ background: '#0a0a0a', width: '600px', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.1)', padding: '3rem', boxShadow: '0 40px 100px rgba(0,0,0,0.8)' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{ width: '60px', height: '60px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', margin: '0 auto 1.5rem' }}>
+                  <Briefcase size={30} />
+                </div>
+                <h2 style={{ fontSize: '2rem', fontWeight: '900', margin: 0 }}>Create Placement Drive</h2>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', marginTop: '0.5rem' }}>Set the parameters for the next recruitment cycle</p>
+              </div>
+
+              <form onSubmit={handleCreateDrive} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginLeft: '0.5rem' }}>Company Name</label>
+                    <input placeholder="e.g. Google" value={newDrive.company} onChange={e => setNewDrive({...newDrive, company: e.target.value})} required style={formInputStyle} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginLeft: '0.5rem' }}>Hiring Role</label>
+                    <input placeholder="e.g. Senior Frontend Engineer" value={newDrive.role} onChange={e => setNewDrive({...newDrive, role: e.target.value})} required style={formInputStyle} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginLeft: '0.5rem' }}>CTC Package (LPA)</label>
+                    <input placeholder="e.g. 24 LPA" value={newDrive.package} onChange={e => setNewDrive({...newDrive, package: e.target.value})} required style={formInputStyle} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginLeft: '0.5rem' }}>Drive Date</label>
+                    <input type="date" value={newDrive.drive_date} onChange={e => setNewDrive({...newDrive, drive_date: e.target.value})} required style={formInputStyle} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginLeft: '0.5rem' }}>Eligibility Criteria</label>
+                  <textarea placeholder="e.g. 7.5+ CGPA, No Active Backlogs, Proficiency in React" value={newDrive.eligibility_criteria} onChange={e => setNewDrive({...newDrive, eligibility_criteria: e.target.value})} required style={{...formInputStyle, height: '100px', resize: 'none'}} />
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                  <button type="submit" style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)' }}>Deploy Drive</button>
+                  <button type="button" onClick={() => setShowDriveModal(false)} style={{ padding: '1.2rem 2rem', borderRadius: '16px', background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>Discard</button>
                 </div>
               </form>
             </motion.div>

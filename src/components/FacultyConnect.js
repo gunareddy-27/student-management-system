@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Microscope, MessageSquare, Video, Clock, Star, Zap, BookOpen } from 'lucide-react';
 
-const FacultyConnect = () => {
+const FacultyConnect = ({ socket, facultyPresence = {} }) => {
   const [selectedProf, setSelectedProf] = useState(null);
 
   const professors = [
@@ -48,9 +48,13 @@ const FacultyConnect = () => {
                     <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2))', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', fontWeight: '900', border: '1px solid rgba(255,255,255,0.1)' }}>
                       {prof.name.split(' ')[1][0]}
                     </div>
-                    {prof.status === 'Online' && (
-                      <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '14px', height: '14px', background: '#10b981', border: '3px solid #0f172a', borderRadius: '50%' }} />
-                    )}
+                    {/* Real-time Status Indicator */}
+                    <div style={{ 
+                      position: 'absolute', bottom: '-4px', right: '-4px', width: '16px', height: '16px', 
+                      background: (facultyPresence[prof.id] || prof.status) === 'Online' ? '#10b981' : ((facultyPresence[prof.id] || prof.status) === 'Busy' ? '#ef4444' : '#64748b'), 
+                      border: '3px solid #0f172a', borderRadius: '50%',
+                      boxShadow: (facultyPresence[prof.id] || prof.status) === 'Online' ? '0 0 10px #10b981' : 'none'
+                    }} />
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#f59e0b', fontSize: '0.85rem', fontWeight: '900' }}>

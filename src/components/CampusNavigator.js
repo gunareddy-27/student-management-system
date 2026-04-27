@@ -8,19 +8,8 @@ import {
   Calendar, Coffee, Landmark, HelpCircle, Footprints
 } from 'lucide-react';
 
-const CampusNavigator = () => {
-  const [selectedBlock, setSelectedBlock] = useState(null);
-  const [navFrom, setNavFrom] = useState('');
-  const [navTo, setNavTo] = useState('');
-  const [isPathfinding, setIsPathfinding] = useState(false);
-  const [showPath, setShowPath] = useState(false);
-  const [mapCategory, setMapCategory] = useState('all'); 
-  const [mapMode, setMapMode] = useState('standard'); // standard, heatmap, traffic
-  const [activeLayers, setActiveLayers] = useState(['buildings']); // buildings, poi, events
-  const [isAlerting, setIsAlerting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const blocks = [
+const CampusNavigator = ({ socket }) => {
+  const [liveBlocks, setLiveBlocks] = useState([
     { id: 'A', name: 'Admin Block', type: 'academics', x: 120, y: 100, info: 'Management, Admissions, Registrar Office', rooms: 24, occupancy: 45, status: 'Normal', events: ['Admin Meeting - 2PM'] },
     { id: 'B', name: 'Engineering Wing', type: 'academics', x: 100, y: 350, info: 'CSE Dept, Advanced AI Lab, Robotics Lab', rooms: 86, occupancy: 92, status: 'Critical', events: ['AI Hackathon - Live'] },
     { id: 'C', name: 'Central Library', type: 'academics', x: 420, y: 180, info: 'Digital Archives, Reading Halls, Study Pods', rooms: 12, occupancy: 78, status: 'Busy', events: ['Book Fair - 10AM'] },
@@ -28,43 +17,40 @@ const CampusNavigator = () => {
     { id: 'E', name: 'Global Food Court', type: 'social', x: 650, y: 420, info: 'Multicuisine Cafeteria, Student Lounge', rooms: 8, occupancy: 85, status: 'High Traffic', events: ['Live Music - 7PM'] },
     { id: 'F', name: 'Elite Hostels', type: 'social', x: 700, y: 120, info: 'Residential Quarters, Guest House', rooms: 240, occupancy: 60, status: 'Normal', events: ['Hostel Night - Sat'] },
     { id: 'G', name: 'Innovation Hub', type: 'academics', x: 300, y: 50, info: 'Startup Incubator, Hackathon Zone', rooms: 18, occupancy: 55, status: 'Normal', events: ['Pitch Deck Workshop'] },
-  ];
+  ]);
 
-  const pois = [
-    { name: 'Main ATM', x: 150, y: 200, type: 'finance', icon: <Landmark size={12}/> },
-    { name: 'Coffee Express', x: 450, y: 300, type: 'food', icon: <Coffee size={12}/> },
-    { name: 'Health Center', x: 550, y: 100, type: 'medical', icon: <Activity size={12}/> },
-    { name: 'Help Desk', x: 400, y: 400, type: 'info', icon: <HelpCircle size={12}/> },
-  ];
+  const [selectedBlock, setSelectedBlock] = useState(null);
+  const [checkInStatus, setCheckInStatus] = useState(null); // null, checking, success
+  const [userLocation, setUserLocation] = useState({ x: 450, y: 350 });
+  const [navFrom, setNavFrom] = useState('');
+  const [navTo, setNavTo] = useState('');
+  const [isPathfinding, setIsPathfinding] = useState(false);
+
+  const handleBlockClick = (block) => {
+    setSelectedBlock(block);
+    setUserLocation({ x: block.x + 20, y: block.y + 20 });
+  };
 
   const handleNavigate = () => {
     if (!navFrom || !navTo) return;
     setIsPathfinding(true);
-    setShowPath(false);
     setTimeout(() => {
       setIsPathfinding(false);
-      setShowPath(true);
-    }, 1200);
+      alert(`Path calculated from ${navFrom} to ${navTo}`);
+    }, 1500);
   };
 
-  const toggleLayer = (layer) => {
-    setActiveLayers(prev => 
-      prev.includes(layer) ? prev.filter(l => l !== layer) : [...prev, layer]
-    );
+  const performCheckIn = () => {
+    setCheckInStatus('checking');
+    setTimeout(() => {
+      setCheckInStatus('success');
+      if (socket) socket.emit('CAMPUS_PULSE', {
+        message: `Student verified at ${selectedBlock.name} via Geofence`,
+        type: 'attendance'
+      });
+      setTimeout(() => setCheckInStatus(null), 3000);
+    }, 2000);
   };
-
-  const activePath = useMemo(() => {
-    if (!showPath) return null;
-    const start = blocks.find(b => b.id === navFrom);
-    const end = blocks.find(b => b.id === navTo);
-    if (!start || !end) return null;
-    return `M ${start.x} ${start.y} C ${(start.x + end.x) / 2 + 100} ${start.y - 100}, ${(start.x + end.x) / 2 - 100} ${end.y + 100}, ${end.x} ${end.y}`;
-  }, [showPath, navFrom, navTo]);
-
-  const filteredBlocks = blocks.filter(b => 
-    (mapCategory === 'all' || b.type === mapCategory) &&
-    (b.name.toLowerCase().includes(searchQuery.toLowerCase()) || b.id.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '2rem', height: '750px', color: 'white' }}>
@@ -74,66 +60,49 @@ const CampusNavigator = () => {
         position: 'relative', 
         background: '#020617',
         borderRadius: '32px', 
-        border: isAlerting ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.08)', 
+        border: '1px solid rgba(255,255,255,0.08)', 
         overflow: 'hidden',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         transition: 'all 0.3s'
       }}>
         
+        {/* Check-in Overlay */}
+        <AnimatePresence>
+          {checkInStatus && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(2, 6, 23, 0.9)', zIndex: 500, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(10px)' }}
+            >
+              {checkInStatus === 'checking' ? (
+                <>
+                  <motion.div 
+                    animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    style={{ width: '100px', height: '100px', border: '4px solid rgba(99, 102, 241, 0.2)', borderTopColor: '#6366f1', borderRadius: '50%' }}
+                  />
+                  <h2 style={{ marginTop: '2rem', letterSpacing: '4px', textTransform: 'uppercase' }}>Biometric Verification</h2>
+                  <p style={{ color: 'rgba(255,255,255,0.4)' }}>Syncing with Block {selectedBlock?.id} Geofence...</p>
+                </>
+              ) : (
+                <>
+                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ width: '100px', height: '100px', background: '#10b981', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <ShieldCheck size={60} color="white" />
+                   </motion.div>
+                   <h2 style={{ marginTop: '2rem', color: '#10b981' }}>Attendance Recorded</h2>
+                   <p style={{ color: 'rgba(255,255,255,0.4)' }}>Location Authenticated at {selectedBlock?.name}</p>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Radar Effect background */}
         <div style={{ position: 'absolute', inset: 0, opacity: 0.1, pointerEvents: 'none' }}>
            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '800px', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '50%' }} />
            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', height: '600px', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '50%' }} />
-           <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '400px', height: '400px', border: '1px solid rgba(99, 102, 241, 0.1)', borderRadius: '50%' }} />
-        </div>
-
-        {/* Top Floating UI */}
-        <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', right: '1.5rem', zIndex: 100, display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <div style={{ background: 'rgba(15, 23, 42, 0.9)', padding: '0.5rem', borderRadius: '16px', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: '0.4rem' }}>
-              {['standard', 'heatmap', 'traffic'].map(mode => (
-                <button 
-                  key={mode}
-                  onClick={() => setMapMode(mode)}
-                  style={{ padding: '0.5rem 0.85rem', borderRadius: '10px', border: 'none', background: mapMode === mode ? 'var(--primary)' : 'transparent', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase' }}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-            
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="text" 
-                placeholder="Search Blocks, Labs..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '0.75rem 1rem 0.75rem 2.5rem', color: 'white', fontSize: '0.8rem', width: '220px', backdropFilter: 'blur(12px)' }}
-              />
-              <Search size={16} style={{ position: 'absolute', left: '0.8rem', top: '0.75rem', opacity: 0.5 }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <div style={{ padding: '0.6rem 1rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Thermometer size={14} /> 28°C
-            </div>
-            <div style={{ padding: '0.6rem 1rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.2)', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Wifi size={14} /> 5G LIVE
-            </div>
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsAlerting(!isAlerting)}
-              style={{ padding: '0.6rem 1.2rem', background: isAlerting ? '#ef4444' : 'rgba(239, 68, 68, 0.1)', color: isAlerting ? 'white' : '#ef4444', borderRadius: '16px', fontSize: '0.75rem', fontWeight: '900', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <Siren size={16} /> {isAlerting ? 'CANCEL' : 'SOS'}
-            </motion.button>
-          </div>
         </div>
 
         {/* SVG Viewport */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', cursor: 'grab' }}>
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
            <svg style={{ width: '100%', height: '100%' }} viewBox="0 0 900 700">
              <defs>
                <filter id="glow">
@@ -143,163 +112,54 @@ const CampusNavigator = () => {
                    <feMergeNode in="SourceGraphic"/>
                  </feMerge>
                </filter>
-               <pattern id="dotPattern" width="40" height="40" patternUnits="userSpaceOnUse">
-                 <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.05)" />
-               </pattern>
              </defs>
              
-             <rect width="100%" height="100%" fill="url(#dotPattern)" />
-
-             {/* Dynamic Heatmap Layer */}
-             {mapMode === 'heatmap' && blocks.map(b => (
-               <motion.circle 
-                 key={`heat-${b.id}`}
-                 initial={{ opacity: 0 }}
-                 animate={{ opacity: b.occupancy / 100 * 0.4 }}
-                 cx={b.x} cy={b.y} r={80 + b.occupancy}
-                 fill={b.occupancy > 80 ? '#ef4444' : '#f59e0b'}
-                 style={{ filter: 'blur(30px)' }}
-               />
-             ))}
-
-             {/* Path Layer */}
-             <AnimatePresence>
-                {showPath && activePath && (
-                  <g>
-                    <motion.path 
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      d={activePath}
-                      fill="none"
-                      stroke="rgba(99, 102, 241, 0.2)"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                    />
-                    <motion.path 
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      d={activePath}
-                      fill="none"
-                      stroke="url(#pathGradient)"
-                      strokeWidth="3"
-                      strokeDasharray="10 5"
-                      strokeLinecap="round"
-                      filter="url(#glow)"
-                    >
-                      <animate attributeName="stroke-dashoffset" from="150" to="0" dur="3s" repeatCount="indefinite" />
-                    </motion.path>
-                    <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#ec4899" />
-                    </linearGradient>
-                  </g>
-                )}
-             </AnimatePresence>
-
-             {/* Buildings Layer */}
-             {activeLayers.includes('buildings') && filteredBlocks.map(block => (
-               <g key={block.id} onClick={() => setSelectedBlock(block)} style={{ cursor: 'pointer' }}>
-                  {/* Building shadow */}
-                  <rect x={block.x - 30} y={block.y - 10} width="60" height="40" rx="8" fill="rgba(0,0,0,0.5)" transform={`skewX(-15)`} />
-                  
-                  {/* Building main */}
-                  <motion.rect 
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    x={block.x - 35} y={block.y - 25}
-                    width="70" height="50"
-                    rx="12"
-                    fill={selectedBlock?.id === block.id ? 'var(--primary)' : '#1e293b'}
-                    stroke={block.status === 'Critical' ? '#ef4444' : 'rgba(255,255,255,0.1)'}
-                    strokeWidth="2"
-                    style={{ transition: 'all 0.3s' }}
-                  />
-                  <text x={block.x} y={block.y + 5} textAnchor="middle" fill="white" fontSize="14" fontWeight="900">{block.id}</text>
-                  
-                  {/* Indicators */}
-                  {block.occupancy > 80 && (
-                    <circle cx={block.x + 35} cy={block.y - 25} r="6" fill="#ef4444">
-                       <animate attributeName="opacity" values="1;0;1" dur="1.5s" repeatCount="indefinite" />
-                    </circle>
-                  )}
+             {/* Buildings */}
+             {liveBlocks.map(b => (
+               <g key={b.id} onClick={() => handleBlockClick(b)} style={{ cursor: 'pointer' }}>
+                 <motion.rect 
+                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                   x={b.x - 40} y={b.y - 40} width="80" height="80" rx="16"
+                   fill={selectedBlock?.id === b.id ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255,255,255,0.03)'}
+                   stroke={selectedBlock?.id === b.id ? '#6366f1' : 'rgba(255,255,255,0.1)'}
+                   strokeWidth="2"
+                 />
+                 <text x={b.x} y={b.y + 60} textAnchor="middle" fill="white" style={{ fontSize: '10px', fontWeight: 'bold', opacity: 0.7 }}>{b.name}</text>
+                 <circle cx={b.x} cy={b.y} r="4" fill={b.status === 'Critical' ? '#ef4444' : '#10b981'} />
                </g>
              ))}
 
-             {/* POI Layer */}
-             {activeLayers.includes('poi') && pois.map((poi, idx) => (
-               <g key={idx}>
-                 <circle cx={poi.x} cy={poi.y} r="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" />
-                 <foreignObject x={poi.x - 6} y={poi.y - 6} width="12" height="12">
-                   <div style={{ color: 'rgba(255,255,255,0.6)' }}>{poi.icon}</div>
-                 </foreignObject>
-               </g>
-             ))}
+             {/* User Location Marker */}
+             <motion.g animate={{ x: userLocation.x, y: userLocation.y }}>
+                <circle r="15" fill="rgba(99, 102, 241, 0.2)" />
+                <motion.circle 
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  r="25" stroke="#6366f1" strokeWidth="1" fill="none"
+                />
+                <MapPin size={20} x={-10} y={-20} color="#6366f1" />
+             </motion.g>
            </svg>
-        </div>
-
-        {/* Bottom Left: Layer Controls */}
-        <div style={{ position: 'absolute', bottom: '1.5rem', left: '1.5rem', display: 'flex', gap: '0.5rem' }}>
-          {['buildings', 'poi', 'events'].map(layer => (
-            <button
-              key={layer}
-              onClick={() => toggleLayer(layer)}
-              style={{
-                padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
-                background: activeLayers.includes(layer) ? 'rgba(99, 102, 241, 0.2)' : 'rgba(15, 23, 42, 0.8)',
-                color: activeLayers.includes(layer) ? 'var(--primary)' : 'white',
-                fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', textTransform: 'capitalize',
-                backdropFilter: 'blur(10px)'
-              }}
-            >
-              {layer} Layer
-            </button>
-          ))}
-        </div>
-
-        {/* Bottom Right: Scale & Stats */}
-        <div style={{ position: 'absolute', bottom: '1.5rem', right: '1.5rem', textAlign: 'right' }}>
-           <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem', letterSpacing: '1px' }}>VIRTUAL CAMPUS TWIN V2.4</div>
-           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <button style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}><Maximize2 size={16}/></button>
-              <button style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}><Compass size={16}/></button>
-           </div>
         </div>
       </div>
 
-      {/* RIGHT SIDEBAR: INTELLIGENCE PANEL */}
+      {/* SIDEBAR UI */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {/* Navigation / Routing */}
-        <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <h4 style={{ fontSize: '0.9rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Navigation size={18} color="#6366f1" /> Neural Pathfinding
-          </h4>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ position: 'relative' }}>
-               <select 
-                 value={navFrom} 
-                 onChange={(e) => setNavFrom(e.target.value)}
-                 style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.8rem', outline: 'none' }}
-               >
-                 <option value="" style={{ background: '#020617' }}>Starting Location...</option>
-                 {blocks.map(b => <option key={b.id} value={b.id} style={{ background: '#020617' }}>{b.name}</option>)}
-               </select>
-               <MapPin size={14} style={{ position: 'absolute', right: '1rem', top: '0.9rem', opacity: 0.3 }} />
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'center' }}><Footprints size={16} opacity={0.2} /></div>
-
-            <div style={{ position: 'relative' }}>
-               <select 
-                 value={navTo} 
-                 onChange={(e) => setNavTo(e.target.value)}
-                 style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.8rem', outline: 'none' }}
-               >
-                 <option value="" style={{ background: '#020617' }}>Final Destination...</option>
-                 {blocks.map(b => <option key={b.id} value={b.id} style={{ background: '#020617' }}>{b.name}</option>)}
-               </select>
-               <Compass size={14} style={{ position: 'absolute', right: '1rem', top: '0.9rem', opacity: 0.3 }} />
-            </div>
+        {/* Navigation Control */}
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
+           <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Navigation size={18} color="#6366f1" /> SMART NAV
+           </h3>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <select value={navFrom} onChange={(e) => setNavFrom(e.target.value)} style={{ padding: '0.75rem', borderRadius: '12px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.8rem' }}>
+                 <option value="">Starting From...</option>
+                 {liveBlocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <select value={navTo} onChange={(e) => setNavTo(e.target.value)} style={{ padding: '0.75rem', borderRadius: '12px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.8rem' }}>
+                 <option value="">Destination...</option>
+                 {liveBlocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
 
             <button 
               onClick={handleNavigate}

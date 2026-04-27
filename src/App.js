@@ -158,6 +158,8 @@ const StudentManagement = () => {
     const raw = localStorage.getItem("broadcast_msg");
     try { return JSON.parse(raw); } catch { return raw; }
   });
+  const [studySessions, setStudySessions] = useState([]);
+  const [facultyPresence, setFacultyPresence] = useState({});
 
   useEffect(() => {
     const newSocket = io(baseUrl);
@@ -173,6 +175,18 @@ const StudentManagement = () => {
 
     newSocket.on("LIBRARY_UPDATE", (data) => {
       showNotification(`📚 Library Activity: Book ${data.action === 'ISSUE' ? 'Issued' : 'Returned'}`);
+    });
+
+    newSocket.on("CAMPUS_PULSE", (data) => {
+      setActivities(prev => [data, ...prev].slice(0, 15));
+    });
+
+    newSocket.on("STUDY_JAM_UPDATE", (data) => {
+      setStudySessions(data);
+    });
+
+    newSocket.on("FACULTY_UPDATE", (data) => {
+      setFacultyPresence(data);
     });
 
     return () => newSocket.close();
@@ -1032,11 +1046,11 @@ const StudentManagement = () => {
                 </button>
               </div>
 
-              {activeUtility === "canteen" && <SmartCanteen studentWallet={450} />}
+              {activeUtility === "canteen" && <SmartCanteen socket={socket} studentWallet={450} />}
               {activeUtility === "resume" && <ResumeBuilder student={students[0]} courses={courses.slice(0, 5)} />}
               {activeUtility === "placement" && <PlacementHub />}
-              {activeUtility === "research" && <FacultyConnect />}
-              {activeUtility === "map" && <CampusNavigator />}
+              {activeUtility === "research" && <FacultyConnect socket={socket} facultyPresence={facultyPresence} />}
+              {activeUtility === "map" && <CampusNavigator socket={socket} />}
             </motion.div>
           )}
 
@@ -1047,29 +1061,70 @@ const StudentManagement = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className="dashboard-grid"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}
             >
-              <section className="card">
-                <h3 className="section-title">Enrolled Students</h3>
-                {isAdmin && <StudentForm onSubmit={handleStudentSubmit} editingStudent={editingStudent} />}
-                <div style={{ position: 'relative', marginTop: '1.5rem' }}>
-                  <input
-                    type="text"
-                    placeholder="Search students..."
-                    value={studentSearchTerm}
-                    onChange={e => setStudentSearchTerm(e.target.value)}
-                    style={{ paddingLeft: '2.5rem' }}
-                  />
-                  <span style={{ position: 'absolute', left: '1rem', top: '0.75rem', color: 'var(--text-muted)' }}>🔍</span>
-                </div>
-                <div className="table-container">
-                  <StudentTable
-                    students={filteredStudents}
-                    onEdit={setEditingStudent}
-                    onDelete={(id) => handleDeleteClick(id, 'student')}
-                    onBulkDelete={(ids) => handleBulkDelete(ids, 'student')}
-                  />
-                </div>
-              </section>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <section className="card">
+                  <h3 className="section-title">Enrolled Students</h3>
+                  {isAdmin && <StudentForm onSubmit={handleStudentSubmit} editingStudent={editingStudent} />}
+                  <div style={{ position: 'relative', marginTop: '1.5rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Search students..."
+                      value={studentSearchTerm}
+                      onChange={e => setStudentSearchTerm(e.target.value)}
+                      style={{ paddingLeft: '2.5rem' }}
+                    />
+                    <span style={{ position: 'absolute', left: '1rem', top: '0.75rem', color: 'var(--text-muted)' }}>🔍</span>
+                  </div>
+                  <div className="table-container">
+                    <StudentTable
+                      students={filteredStudents}
+                      onEdit={setEditingStudent}
+                      onDelete={(id) => handleDeleteClick(id, 'student')}
+                      onBulkDelete={(ids) => handleBulkDelete(ids, 'student')}
+                    />
+                  </div>
+                </section>
+              </div>
+
+              <div className="sidebar-container" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {/* Real-time Pulse Widget */}
+                <section className="card pulse-card" style={{ background: 'linear-gradient(to bottom, rgba(30, 27, 75, 0.4), rgba(15, 23, 42, 0.6))', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div className="status-dot pulsing"></div>
+                    <h3 className="section-title" style={{ margin: 0 }}>Campus Pulse</h3>
+                  </div>
+                  <div className="pulse-feed" style={{ maxHeight: '500px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {activities.length === 0 ? (
+                      <p style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-dim)', textAlign: 'center', padding: '2rem' }}>No activity detected yet.</p>
+                    ) : (
+                      activities.map(act => (
+                        <motion.div 
+                          key={act.id} 
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          style={{
+                            padding: '1rem',
+                            background: 'rgba(255,255,255,0.03)',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            position: 'relative',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.85rem', color: 'white', lineHeight: '1.4' }}>{act.msg}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>System Log</span>
+                            <span>{act.time}</span>
+                          </div>
+                          {act.type === 'emergency' && <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '4px', background: '#ef4444' }}></div>}
+                        </motion.div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              </div>
 
               <section className="card">
                 <h3 className="section-title">Session Feed</h3>
@@ -1239,7 +1294,7 @@ const StudentManagement = () => {
           {activeTab === "exams" && (
             <motion.div key="exams" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <section className="card">
-                <ExamIntelligence />
+                <ExamIntelligence socket={socket} studySessions={studySessions} />
               </section>
             </motion.div>
           )}
@@ -1283,7 +1338,7 @@ const StudentManagement = () => {
           {activeTab === "food" && (
             <motion.div key="food" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
               <section className="card" style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}>
-                <SmartCanteen studentWallet={450} />
+                <SmartCanteen socket={socket} studentWallet={450} />
               </section>
             </motion.div>
           )}

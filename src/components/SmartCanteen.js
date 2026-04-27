@@ -6,7 +6,7 @@ import {
   Pizza, Flame, Zap, Salad, X, CreditCard, ShieldCheck
 } from 'lucide-react';
 
-const SmartCanteen = ({ studentWallet = 450 }) => {
+const SmartCanteen = ({ socket, studentWallet = 450 }) => {
   const [balance, setBalance] = useState(studentWallet);
   const [cart, setCart] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
@@ -101,6 +101,14 @@ const SmartCanteen = ({ studentWallet = 450 }) => {
     setTimeout(() => {
       setPaymentStep('success');
       setBalance(prev => prev - totalPrice);
+      if (socket) {
+        socket.emit('CAMPUS_PULSE', {
+          id: Date.now(),
+          msg: `🍔 Someone just ordered from the Canteen! Order total: ₹${totalPrice}`,
+          type: 'canteen',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+      }
     }, 2000);
 
     // After success, start order lifecycle
@@ -246,8 +254,11 @@ const SmartCanteen = ({ studentWallet = 450 }) => {
 
           {/* AI Crowd Analysis */}
           <section style={{ background: 'rgba(255,255,255,0.02)', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-              <TrendingUp size={20} color="#10b981" /> Real-time Canteen Metrics
+            <h3 style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '1.1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <TrendingUp size={20} color="#10b981" /> Live Queue Metrics
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '10px' }}>LIVE UPDATING</div>
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               {waitTimes.map((w, i) => (

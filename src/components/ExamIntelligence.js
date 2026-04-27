@@ -7,7 +7,7 @@ import {
   Award, TrendingUp, Info, Play, Trash2
 } from 'lucide-react';
 
-const ExamIntelligence = () => {
+const ExamIntelligence = ({ socket, studySessions = [] }) => {
   const [examState, setExamState] = useState('idle'); // idle, active, finished
   const [selectedSubject, setSelectedSubject] = useState('Fullstack Development');
   const [proctorStatus, setProctorStatus] = useState('Secure');
@@ -153,6 +153,54 @@ const ExamIntelligence = () => {
               >
                 Launch {selectedSubject} Exam
               </button>
+
+              {/* REAL-TIME STUDY JAM HUB */}
+              <div style={{ marginTop: '4rem', width: '100%', maxWidth: '800px', textAlign: 'left' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className="status-dot pulsing"></div> Live Study Jam Hub
+                  </h4>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{studySessions.length} active sessions</div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    style={{ padding: '1.5rem', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '24px', border: '2px dashed rgba(99, 102, 241, 0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    onClick={() => {
+                      const studentName = prompt("Enter your study alias:");
+                      if (studentName) {
+                        socket.emit('JOIN_STUDY_JAM', { studentName, subject: selectedSubject });
+                      }
+                    }}
+                  >
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <Play size={20} fill="white" />
+                    </div>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Start Study Jam</span>
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Invite others to join you</span>
+                  </motion.div>
+
+                  {studySessions.map((session, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                           <div style={{ width: '32px', height: '32px', borderRadius: '80%', background: 'var(--primary)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>{session.studentName[0]}</div>
+                           <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{session.studentName}</div>
+                         </div>
+                         <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 10px #10b981' }}></div>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Studying: <span style={{ color: 'white' }}>{session.subject}</span></div>
+                      <button style={{ marginTop: '0.5rem', padding: '0.5rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'white', fontSize: '0.75rem', cursor: 'pointer' }}>Join Session</button>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

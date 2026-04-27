@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
-import { Shield, MapPin, Award, BookOpen, Clock, Zap } from 'lucide-react';
+import { Shield, MapPin, Award, BookOpen, Clock, Zap, Fingerprint, QrCode, Wifi, Lock, Activity } from 'lucide-react';
 
 const DigitalID = ({ student }) => {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -25,98 +25,102 @@ const DigitalID = ({ student }) => {
     return () => clearInterval(timer);
   }, []);
   
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
 
-  const rotateX = useTransform(y, [-100, 100], [15, -15]);
-  const rotateY = useTransform(x, [-100, 100], [-15, 15]);
+  const rotateX = useTransform(mouseY, [-200, 200], [15, -15]);
+  const rotateY = useTransform(mouseX, [-200, 200], [-20, 20]);
+  const glareX = useTransform(mouseX, [-200, 200], ["0%", "100%"]);
+  const glareY = useTransform(mouseY, [-200, 200], ["0%", "100%"]);
 
   function handleMouse(event) {
     const rect = event.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    x.set(event.clientX - centerX);
-    y.set(event.clientY - centerY);
+    const x = event.clientX - rect.left - rect.width / 2;
+    const y = event.clientY - rect.top - rect.height / 2;
+    mouseX.set(x);
+    mouseY.set(y);
   }
 
   function handleMouseLeave() {
-    x.set(0);
-    y.set(0);
+    mouseX.set(0);
+    mouseY.set(0);
   }
 
   const handleTap = () => {
     setIsTapping(true);
     setTimeout(() => {
       setIsTapping(false);
-      setScanLogs([{ location: 'Dashboard Terminal', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), type: 'Verify' }, ...scanLogs.slice(0, 4)]);
-    }, 1000);
+      setScanLogs([{ location: 'Main Terminal', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), type: 'Verify' }, ...scanLogs.slice(0, 4)]);
+    }, 800);
   };
 
   const [showLargeQR, setShowLargeQR] = useState(false);
 
   const QRSquare = ({ size = 100 }) => {
-    const qrData = encodeURIComponent(`ID: ${student?.id}\nToken: ${refreshKey}\nTS: ${new Date().getTime()}\nStatus: Verified`);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${qrData}`;
+    const qrData = encodeURIComponent(`SECURE_ID:${student?.id}|TOKEN:${refreshKey}|VERIFIED`);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${qrData}&color=0f172a&bgcolor=ffffff`;
     
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
         <div style={{
-          width: `${size}px`, height: `${size}px`, background: 'white', borderRadius: '12px',
-          padding: '8px', position: 'relative', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center',
-          boxShadow: size > 100 ? '0 0 30px rgba(59, 130, 246, 0.3)' : 'none'
+          width: `${size}px`, height: `${size}px`, background: 'white', borderRadius: '20px',
+          padding: '12px', position: 'relative', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          boxShadow: size > 100 ? '0 0 50px rgba(99, 102, 241, 0.4)' : 'none',
+          border: '4px solid rgba(255,255,255,0.1)'
         }}>
           <motion.div 
-            animate={{ y: [0, size - 20, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'rgba(59, 130, 246, 0.8)', zIndex: 5, boxShadow: '0 0 12px #3b82f6' }}
+            animate={{ top: ['0%', '100%', '0%'] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            style={{ position: 'absolute', left: 0, right: 0, height: '2px', background: '#6366f1', zIndex: 5, boxShadow: '0 0 15px #6366f1' }}
           />
-          <img src={qrUrl} alt="Student QR" style={{ width: '100%', height: '100%' }} />
+          <img src={qrUrl} alt="Student QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+          <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
             <motion.div 
               initial={false}
               animate={{ width: `${(timeLeft / 60) * 100}%` }}
-              style={{ height: '100%', background: timeLeft < 10 ? '#ef4444' : '#10b981' }}
+              style={{ height: '100%', background: timeLeft < 10 ? '#ef4444' : '#6366f1', boxShadow: `0 0 10px ${timeLeft < 10 ? '#ef4444' : '#6366f1'}` }}
             />
           </div>
-          <span style={{ fontSize: '0.6rem', color: timeLeft < 10 ? '#ef4444' : 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>{timeLeft}s</span>
+          <span style={{ fontSize: '0.65rem', color: timeLeft < 10 ? '#ef4444' : 'rgba(255,255,255,0.6)', fontWeight: 'bold', fontFamily: 'monospace' }}>{timeLeft}s</span>
         </div>
       </div>
     );
   };
 
-  const studentStatus = student?.attendance > 85 ? 'In Lecture' : (student?.attendance > 70 ? 'In Library' : 'Active');
+  const idColor = student?.attendance > 85 ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : (student?.attendance > 70 ? 'linear-gradient(135deg, #10b981, #34d399)' : 'linear-gradient(135deg, #f59e0b, #fbbf24)');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3rem', perspective: '1200px' }}>
       {/* Large QR Modal */}
       <AnimatePresence>
         {showLargeQR && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowLargeQR(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 10000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(10px)' }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(2, 6, 23, 0.9)', zIndex: 10000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(15px)' }}
           >
             <motion.div 
-              initial={{ scale: 0.5, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0.5, rotate: 10 }}
+              initial={{ scale: 0.8, y: 50 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 50 }}
               onClick={(e) => e.stopPropagation()}
-              style={{ background: 'rgba(255,255,255,0.05)', padding: '3rem', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}
+              style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '4rem', borderRadius: '40px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', boxShadow: '0 50px 100px rgba(0,0,0,0.5)' }}
             >
-              <h3 style={{ color: 'white', marginBottom: '2rem' }}>Verified Campus Access Pass</h3>
-              <QRSquare size={250} />
-              <div style={{ marginTop: '2rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
-                <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '0.5rem' }}>{student?.name}</div>
-                <div>ID: #{student?.id}</div>
-                <div style={{ marginTop: '1rem', color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <Zap size={14} /> DYNAMIC ACCESS ACTIVE
-                </div>
+              <div style={{ marginBottom: '2rem' }}>
+                <QrCode size={48} color="#6366f1" style={{ marginBottom: '1rem' }} />
+                <h3 style={{ color: 'white', fontSize: '1.5rem', fontWeight: '900', margin: 0 }}>HOLOGRAPHIC ACCESS PASS</h3>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', marginTop: '0.5rem' }}>Scan at any campus terminal for instant verification</p>
+              </div>
+              <QRSquare size={280} />
+              <div style={{ marginTop: '2.5rem' }}>
+                <div style={{ color: 'white', fontWeight: '900', fontSize: '1.4rem', marginBottom: '0.25rem' }}>{student?.name}</div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', fontFamily: 'monospace' }}>#{student?.id} • {student?.email}</div>
               </div>
               <button 
                 onClick={() => setShowLargeQR(false)}
-                style={{ marginTop: '2rem', padding: '0.75rem 2rem', borderRadius: '12px', border: 'none', background: 'white', color: 'black', fontWeight: 'bold', cursor: 'pointer' }}
+                style={{ marginTop: '3rem', padding: '1rem 3rem', borderRadius: '20px', border: 'none', background: 'white', color: '#0f172a', fontWeight: '900', cursor: 'pointer', boxShadow: '0 10px 20px rgba(255,255,255,0.1)' }}
               >
-                Close Pass
+                DISMISS PASS
               </button>
             </motion.div>
           </motion.div>
@@ -130,125 +134,188 @@ const DigitalID = ({ student }) => {
           onClick={() => setIsFlipped(!isFlipped)}
           animate={{ 
             rotateY: isFlipped ? 180 : 0,
-            scale: isTapping ? 0.95 : 1,
-            y: isTapping ? -20 : 0
+            scale: isTapping ? 0.92 : 1,
+            y: isTapping ? -15 : 0
           }}
           style={{
-            width: '400px', height: '240px', cursor: 'pointer', position: 'relative',
-            transformStyle: 'preserve-3d', rotateX, rotateY
+            width: '440px', height: '260px', cursor: 'pointer', position: 'relative',
+            transformStyle: 'preserve-3d'
           }}
-          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         >
+          {/* Holographic Glare */}
+          <motion.div 
+            style={{ 
+              position: 'absolute', inset: 0, borderRadius: '32px', zIndex: 10, pointerEvents: 'none',
+              background: `radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.15) 0%, transparent 60%)`,
+              opacity: isFlipped ? 0 : 1
+            }}
+          />
+
           {/* FRONT SIDE */}
           <div style={{
             position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-            background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(20px)',
-            borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)',
-            padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
+            background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(30px) saturate(150%)',
+            borderRadius: '32px', border: '1px solid rgba(255, 255, 255, 0.15)',
+            padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(255,255,255,0.05)', overflow: 'hidden'
           }}>
-            {/* Security Ticker */}
-            <div style={{ position: 'absolute', bottom: '0', left: 0, right: 0, height: '20px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-              <motion.div 
-                animate={{ x: [0, -400] }} 
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                style={{ whiteSpace: 'nowrap', fontSize: '0.5rem', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '2px' }}
-              >
-                SECURE ACCESS KEY: {student?.id || '0000'} - TOKEN: {refreshKey} - VERIFIED {new Date().toLocaleDateString()} - ANTI-SPOOF ACTIVE - 
-              </motion.div>
+            {/* Top Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 10px #10b981' }} />
+                  <span style={{ fontSize: '0.65rem', fontWeight: '900', letterSpacing: '2px', color: 'rgba(255,255,255,0.4)' }}>CORE-ID V.4</span>
+               </div>
+               <Wifi size={16} color="rgba(255,255,255,0.2)" />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', display: 'flex', justifyContent: 'center', alignItems: 'center', border: '2px solid rgba(255,255,255,0.2)' }}>
-                  <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white' }}>{student?.name?.charAt(0)}</span>
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>{student?.name}</h3>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>STUDENT ID: #{student?.id}</p>
-                </div>
-              </div>
-              <Shield size={24} color="#60a5fa" />
+            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+               <motion.div 
+                 whileHover={{ scale: 1.1 }}
+                 style={{ width: '90px', height: '90px', borderRadius: '24px', background: idColor, display: 'flex', justifyContent: 'center', alignItems: 'center', border: '2px solid rgba(255,255,255,0.3)', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}
+               >
+                 <span style={{ fontSize: '2.5rem', fontWeight: '900', color: 'white', textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>{student?.name?.charAt(0)}</span>
+               </motion.div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <motion.h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: '900', color: 'white', letterSpacing: '-0.5px' }}>{student?.name}</motion.h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>UID-{student?.id}</span>
+                    <div style={{ padding: '2px 8px', borderRadius: '6px', background: 'rgba(255,255,255,0.1)', fontSize: '0.6rem', color: 'white', fontWeight: 'bold' }}>UG-CSE</div>
+                  </div>
+               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: student?.id_card_status === 'Valid' ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: '6px', height: '6px', background: student?.id_card_status === 'Valid' ? '#10b981' : '#ef4444', borderRadius: '50%' }} /> 
-                  {student?.id_card_status?.toUpperCase() || 'VALID'}
-                </span>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.65rem', color: 'white', opacity: 0.8 }}>Mob: +91 {student?.phone || 'N/A'}</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Verified Entity</div>
-                <div style={{ fontSize: '0.7rem', color: 'white', fontWeight: 'bold' }}>{student?.id_card_status === 'Valid' ? 'B.Tech CSE' : 'ACCESS REVOKED'}</div>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+               <div style={{ display: 'flex', gap: '1.5rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '4px' }}>Clearance</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: '900', color: '#10b981' }}>LEVEL 4</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '4px' }}>Expiry</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: '900', color: 'white' }}>JUN 2027</div>
+                  </div>
+               </div>
+               <div style={{ textAlign: 'right' }}>
+                 <Fingerprint size={32} color="rgba(255,255,255,0.1)" />
+               </div>
+            </div>
+
+            {/* Micro-chip design */}
+            <div style={{ position: 'absolute', top: '2rem', right: '2rem', width: '40px', height: '30px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', borderRadius: '6px', opacity: 0.6, border: '1px solid rgba(255,255,255,0.2)' }}>
+               <div style={{ position: 'absolute', inset: '4px', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '2px' }} />
             </div>
           </div>
 
           {/* BACK SIDE */}
           <div style={{
             position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-            background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(24px)',
-            borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)',
-            padding: '1.5rem', display: 'flex', justifyContent: 'space-between',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', rotateY: 180, overflow: 'hidden'
+            background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(30px)',
+            borderRadius: '32px', border: '1px solid rgba(255, 255, 255, 0.15)',
+            padding: '2rem', display: 'flex', justifyContent: 'space-between',
+            boxShadow: '0 30px 60px rgba(0, 0, 0, 0.6)', rotateY: 180, overflow: 'hidden'
           }}>
-             <div style={{ width: '60%' }}>
-                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Identity Credentials</h4>
-                <div style={{ fontSize: '0.75rem', color: 'white', marginBottom: '1rem' }}>
-                  <div style={{ marginBottom: '0.5rem' }}>📞 Phone: +91 {student?.phone}</div>
-                  <div style={{ marginBottom: '0.5rem' }}>📧 Email: {student?.email}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
-                    <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }} />
-                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>OTP-QR ACTIVE</span>
+             <div style={{ width: '55%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 1.5rem 0', fontSize: '0.75rem', fontWeight: '900', color: 'rgba(255,255,255,0.2)', letterSpacing: '2px' }}>VIRTUAL CREDENTIALS</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <Lock size={14} color="#6366f1" />
+                       <span style={{ fontSize: '0.8rem', color: 'white', fontWeight: 'bold' }}>{student?.email}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <MapPin size={14} color="#ec4899" />
+                       <span style={{ fontSize: '0.8rem', color: 'white', fontWeight: 'bold' }}>Resident - Block B</span>
+                    </div>
                   </div>
                 </div>
+                
+                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                   <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>SIGNATURE HASH</div>
+                   <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                     {refreshKey.toUpperCase()}-S83X-K92L-9921-X2
+                   </div>
+                </div>
              </div>
-             <div style={{ width: '35%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                <QRSquare size={100} />
-                <div style={{ fontSize: '0.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>DYNAMIC TOKEN<br/>EXPIRES EVERY 60S</div>
+             
+             <div style={{ width: '40%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                <QRSquare size={120} />
+                <div style={{ fontSize: '0.6rem', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontWeight: 'bold', letterSpacing: '1px' }}>
+                  RE-GEN ACTIVE
+                </div>
              </div>
           </div>
         </motion.div>
       </div>
 
-      {/* ID Interactions */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', width: '100%', maxWidth: '900px' }}>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <h4 style={{ color: 'white', marginBottom: '1.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Zap size={16} color="#10b981" /> Card Actions
+      {/* Interactions Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', width: '100%', maxWidth: '1000px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '2rem', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)' }}>
+          <h4 style={{ color: 'white', marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Zap size={20} color="#f59e0b" /> Command Center
           </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <button 
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <motion.button 
+              whileHover={{ scale: 1.02, background: 'rgba(99, 102, 241, 0.2)' }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleTap}
               disabled={isTapping}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '1rem', borderRadius: '18px', border: '1px solid rgba(99, 102, 241, 0.3)', background: 'transparent', color: 'white', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
             >
-              {isTapping ? 'Verifying...' : 'Simulate NFC Tap'}
-            </button>
-            <button 
+              {isTapping ? (
+                <>
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}><Activity size={18} /></motion.div>
+                  VERIFYING LINK...
+                </>
+              ) : (
+                <>
+                  <Fingerprint size={18} /> INITIALIZE NFC TAP
+                </>
+              )}
+            </motion.button>
+            
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setShowLargeQR(true)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--primary)', background: 'rgba(139, 92, 246, 0.1)', color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '1rem', borderRadius: '18px', border: 'none', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: '900', cursor: 'pointer', boxShadow: '0 10px 25px rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
             >
-              View Large Scannable QR
-            </button>
-            <button style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
-              Add to Apple/Google Wallet
-            </button>
+              <QrCode size={18} /> GENERATE PASS
+            </motion.button>
+
+            <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>Biometric Security</span>
+                  <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 'bold' }}>ENABLED</span>
+               </div>
+               <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                  <div style={{ width: '100%', height: '100%', background: '#10b981', borderRadius: '2px' }} />
+               </div>
+            </div>
           </div>
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <h4 style={{ color: 'white', marginBottom: '1.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Clock size={16} color="#8b5cf6" /> Recent Access Logs
+        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '2rem', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)' }}>
+          <h4 style={{ color: 'white', marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Activity size={20} color="#ec4899" /> Neural Logs
           </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {scanLogs.map((log, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '0.8rem' }}>
-                <span style={{ color: 'white' }}>{log.location}</span>
-                <span style={{ color: 'var(--text-dim)' }}>{log.time} • <span style={{ color: '#10b981' }}>{log.type}</span></span>
-              </div>
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '900', color: 'white' }}>{log.location}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>{log.time}</div>
+                </div>
+                <div style={{ padding: '4px 10px', borderRadius: '8px', background: log.type === 'Verify' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255,255,255,0.05)', color: log.type === 'Verify' ? '#818cf8' : 'white', fontSize: '0.65rem', fontWeight: '900', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  {log.type.toUpperCase()}
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>

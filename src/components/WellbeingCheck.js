@@ -1,20 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Smile, Meh, Frown } from 'lucide-react';
+import { Heart, Smile, Meh, Frown, EyeOff, Wind, Coffee, Zap, Timer, X } from 'lucide-react';
 
 const WellbeingCheck = () => {
   const [showCheck, setShowCheck] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [mood, setMood] = useState(null);
   const [stressReason, setStressReason] = useState(null);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [focusTime, setFocusTime] = useState(25 * 60); // 25 mins
 
-  // Auto-trigger after a while (simulating long study session)
+  // Auto-trigger check-in
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShowCheck(true);
-    }, 120000); // 2 minutes for demo purposes
+      if (!isFocusMode) setShowCheck(true);
+    }, 120000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isFocusMode]);
+
+  // Focus Timer Logic
+  useEffect(() => {
+    let interval = null;
+    if (isFocusMode && focusTime > 0) {
+      interval = setInterval(() => {
+        setFocusTime((prev) => prev - 1);
+      }, 1000);
+    } else if (focusTime === 0) {
+      setIsFocusMode(false);
+      setFocusTime(25 * 60);
+      alert("Focus Session Complete! Time for a break.");
+    }
+    return () => clearInterval(interval);
+  }, [isFocusMode, focusTime]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
   const handleResponse = (selectedMood) => {
     setMood(selectedMood);
@@ -38,10 +61,6 @@ const WellbeingCheck = () => {
     }, 4000);
   };
 
-  const buttonStyle = {
-    flex: 1, padding: '1.5rem 0', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', border: 'none'
-  };
-
   const stressOptions = [
     { id: 'exams', label: 'Upcoming Exams', icon: '📝' },
     { id: 'assignments', label: 'Heavy Workload', icon: '💻' },
@@ -50,7 +69,27 @@ const WellbeingCheck = () => {
   ];
 
   return (
-    <>
+    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+      
+      {/* Focus Mode Toggle */}
+      <motion.button 
+        whileHover={{ scale: 1.05 }}
+        onClick={() => setIsFocusMode(true)}
+        style={{
+          background: 'rgba(99, 102, 241, 0.1)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          color: '#6366f1',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.4rem 1rem',
+          borderRadius: '12px',
+        }}
+      >
+        <EyeOff size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Focus Mode</span>
+      </motion.button>
+
       <button 
         onClick={() => setShowCheck(true)}
         style={{
@@ -62,12 +101,63 @@ const WellbeingCheck = () => {
           alignItems: 'center',
           gap: '0.5rem',
           padding: '0.4rem 1rem',
-          borderRadius: '8px',
+          borderRadius: '12px',
           border: '1px solid rgba(236, 72, 153, 0.3)',
         }}
       >
-        <Heart size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Well-being</span>
+        <Heart size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Check-in</span>
       </button>
+
+      {/* Focus Mode Overlay */}
+      <AnimatePresence>
+        {isFocusMode && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(5, 5, 20, 0.98)',
+              zIndex: 10000,
+              display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
+            }}
+          >
+            <motion.div 
+              animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
+              transition={{ duration: 10, repeat: Infinity }}
+              style={{ position: 'absolute', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)' }}
+            />
+            
+            <div style={{ position: 'relative', textAlign: 'center' }}>
+               <h1 style={{ color: 'white', fontSize: '10rem', fontWeight: '900', margin: 0, opacity: 0.8, letterSpacing: '-5px' }}>
+                 {formatTime(focusTime)}
+               </h1>
+               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.2rem', letterSpacing: '4px', textTransform: 'uppercase', marginTop: '-20px' }}>
+                 Distraction Free Zone
+               </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '2rem', marginTop: '4rem' }}>
+               {[
+                 { icon: <Wind size={20} />, label: "White Noise" },
+                 { icon: <Coffee size={20} />, label: "Take Break" },
+                 { icon: <Timer size={20} />, label: "Reset" }
+               ].map((ctrl, i) => (
+                 <button key={i} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem 2rem', borderRadius: '16px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {ctrl.icon} {ctrl.label}
+                 </button>
+               ))}
+            </div>
+
+            <button 
+              onClick={() => setIsFocusMode(false)}
+              style={{ position: 'absolute', top: '3rem', right: '3rem', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+            >
+              <X size={48} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showCheck && (
@@ -82,9 +172,9 @@ const WellbeingCheck = () => {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               style={{
                 background: 'linear-gradient(145deg, #1e1b4b, #312e81)',
-                padding: '2.5rem',
-                borderRadius: '24px',
-                width: '450px',
+                padding: '3rem',
+                borderRadius: '32px',
+                width: '500px',
                 textAlign: 'center',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
                 border: '1px solid rgba(255,255,255,0.1)'
@@ -94,63 +184,60 @@ const WellbeingCheck = () => {
                 <>
                   {!mood ? (
                     <>
-                      <div style={{ width: '60px', height: '60px', background: 'rgba(236, 72, 153, 0.2)', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 1.5rem', color: '#ec4899' }}>
-                        <Heart size={30} />
+                      <div style={{ width: '80px', height: '80px', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 2rem', color: '#ec4899' }}>
+                        <Heart size={40} />
                       </div>
-                      <h2 style={{ color: 'white', marginBottom: '0.5rem' }}>Time for a quick check-in!</h2>
-                      <p style={{ color: 'var(--text-dim)', marginBottom: '2rem' }}>You've been active for a while. How are you feeling right now?</p>
+                      <h2 style={{ color: 'white', marginBottom: '0.5rem', fontWeight: '900' }}>Well-being Sync</h2>
+                      <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '2.5rem' }}>Your digital pulse check. How are we doing?</p>
                       
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleResponse('smile')} style={{ ...buttonStyle, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981' }}>
-                          <Smile size={32} />
-                          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: 'bold' }}>Great</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1.5rem' }}>
+                        <motion.button whileHover={{ y: -5 }} onClick={() => handleResponse('smile')} style={{ flex: 1, padding: '2rem 0', borderRadius: '24px', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981', cursor: 'pointer' }}>
+                          <Smile size={48} />
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleResponse('meh')} style={{ ...buttonStyle, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#f59e0b' }}>
-                          <Meh size={32} />
-                          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: 'bold' }}>Okay</div>
+                        <motion.button whileHover={{ y: -5 }} onClick={() => handleResponse('meh')} style={{ flex: 1, padding: '2rem 0', borderRadius: '24px', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', cursor: 'pointer' }}>
+                          <Meh size={48} />
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleResponse('frown')} style={{ ...buttonStyle, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
-                          <Frown size={32} />
-                          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: 'bold' }}>Stressed</div>
+                        <motion.button whileHover={{ y: -5 }} onClick={() => handleResponse('frown')} style={{ flex: 1, padding: '2rem 0', borderRadius: '24px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', cursor: 'pointer' }}>
+                          <Frown size={48} />
                         </motion.button>
                       </div>
                     </>
                   ) : (
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                      <h2 style={{ color: 'white', marginBottom: '0.5rem' }}>We're here for you.</h2>
-                      <p style={{ color: 'var(--text-dim)', marginBottom: '2rem' }}>What's weighing on your mind today?</p>
+                      <h2 style={{ color: 'white', marginBottom: '0.5rem', fontWeight: '900' }}>Deep Breath...</h2>
+                      <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '2.5rem' }}>Identifying stressors can help in management.</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         {stressOptions.map(opt => (
                           <motion.button
                             key={opt.id}
-                            whileHover={{ scale: 1.02, background: 'rgba(255,255,255,0.08)' }}
+                            whileHover={{ scale: 1.05, background: 'rgba(255,255,255,0.08)' }}
                             onClick={() => handleStressReason(opt.id)}
-                            style={{ padding: '1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                            style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', color: 'white', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '1rem' }}
                           >
-                            <span style={{ fontSize: '1.2rem' }}>{opt.icon}</span>
-                            <span style={{ fontSize: '0.8rem' }}>{opt.label}</span>
+                            <span style={{ fontSize: '1.5rem' }}>{opt.icon}</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{opt.label}</span>
                           </motion.button>
                         ))}
                       </div>
                     </motion.div>
                   )}
                   
-                  <button onClick={() => setShowCheck(false)} style={{ marginTop: '2rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
-                    Skip for now
+                  <button onClick={() => setShowCheck(false)} style={{ marginTop: '3rem', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontWeight: 'bold' }}>
+                    Snooze Check-in
                   </button>
                 </>
               ) : (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: mood === 'smile' ? '#10b981' : (mood === 'meh' ? '#f59e0b' : '#6366f1'), display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 1.5rem' }}>
-                    <span style={{ fontSize: '2.5rem' }}>{mood === 'smile' ? '🎉' : (mood === 'meh' ? '🍵' : '🧘')}</span>
+                  <div style={{ width: '100px', height: '100px', borderRadius: '40px', background: 'rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 2rem' }}>
+                    <span style={{ fontSize: '3rem' }}>{mood === 'smile' ? '🌟' : (mood === 'meh' ? '☕' : '🧘')}</span>
                   </div>
-                  <h2 style={{ color: 'white' }}>{mood === 'smile' ? 'Keep it up!' : (mood === 'meh' ? 'Take a breather' : 'You got this')}</h2>
-                  <p style={{ color: 'var(--text-dim)', lineHeight: '1.5' }}>
-                    {stressReason === 'exams' && "Try the Pomodoro technique: 25 mins study, 5 mins rest. It helps with focus!"}
-                    {stressReason === 'assignments' && "Break your tasks into tiny chunks. One small step at a time is still progress."}
-                    {stressReason === 'personal' && "It's okay to talk to someone. Our campus counselors are available 24/7."}
-                    {stressReason === 'health' && "Maybe a quick walk or drinking some water would help? Take care of yourself."}
-                    {!stressReason && "Remember to take a 5-minute break. You're doing great!"}
+                  <h2 style={{ color: 'white', fontWeight: '900' }}>{mood === 'smile' ? 'Vibrant!' : (mood === 'meh' ? 'Stay Centered' : 'Zen Space')}</h2>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', lineHeight: '1.8', fontSize: '0.95rem' }}>
+                    {stressReason === 'exams' && "The neural pathways respond well to intervals. Try 50/10 split today."}
+                    {stressReason === 'assignments' && "Focus on the smallest atomic task first. Momentum is your friend."}
+                    {stressReason === 'personal' && "Balance is key. Campus wellness hubs are open for anonymous chat."}
+                    {stressReason === 'health' && "Hydration is the simplest performance booster. Grab a glass of water!"}
+                    {!stressReason && "Synchronized. You're operating at peak mental efficiency."}
                   </p>
                 </motion.div>
               )}
@@ -158,7 +245,7 @@ const WellbeingCheck = () => {
           </div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
 

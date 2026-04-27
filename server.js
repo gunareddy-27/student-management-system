@@ -26,10 +26,47 @@ const dbConfig = {
 const pool = mysql.createPool(dbConfig);
 
 // Socket.io Connection Logic
+let activeStudySessions = []; // [{studentName, subject, socketId}]
+let facultyStatus = {}; // {facultyId: 'online' | 'busy' | 'offline'}
+
 io.on('connection', (socket) => {
     console.log('⚡ New client connected:', socket.id);
-    socket.on('disconnect', () => console.log('🔥 Client disconnected'));
+
+    // --- Study Jam Sockets ---
+    socket.on('JOIN_STUDY_JAM', (data) => {
+        activeStudySessions.push({ ...data, socketId: socket.id });
+        io.emit('STUDY_JAM_UPDATE', activeStudySessions);
+        emitPulse(`📖 ${data.studentName} joined a Study Jam for ${data.subject}!`, 'study');
+    });
+
+    socket.on('LEAVE_STUDY_JAM', () => {
+        activeStudySessions = activeStudySessions.filter(s => s.socketId !== socket.id);
+        io.emit('STUDY_JAM_UPDATE', activeStudySessions);
+    });
+
+    // --- Faculty Presence Sockets ---
+    socket.on('FACULTY_STATUS_CHANGE', (data) => {
+        facultyStatus[data.facultyId] = data.status;
+        io.emit('FACULTY_UPDATE', facultyStatus);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔥 Client disconnected');
+        activeStudySessions = activeStudySessions.filter(s => s.socketId !== socket.id);
+        io.emit('STUDY_JAM_UPDATE', activeStudySessions);
+    });
 });
+
+// Helper for Real-time Campus Pulse
+const emitPulse = (msg, type = 'info') => {
+    const pulse = {
+        id: Date.now(),
+        msg,
+        type,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    io.emit('CAMPUS_PULSE', pulse);
+};
 
 // Helper for System Logging
 const auditLog = async (action, role, metadata) => {
@@ -68,6 +105,7 @@ app.post('/students', async (req, res) => {
             [name, email, phone, attendance]
         );
         res.status(201).json({ id: result.insertId, name, email, phone, attendance });
+        emitPulse(`✨ New student ${name} just joined the campus!`, 'student');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -86,6 +124,7 @@ app.delete('/students/:id', async (req, res) => {
     try {
         await pool.query(`DELETE FROM student WHERE id = ?`, [req.params.id]);
         res.json({ message: "Student deleted" });
+        emitPulse(`🧹 System updated: Student profile removed from registry.`, 'student');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -116,6 +155,7 @@ app.post('/courses', async (req, res) => {
             [courseName, courseCode, attendance]
         );
         res.status(201).json({ id: result.insertId, courseName, courseCode, attendance });
+        emitPulse(`🎓 New Course Alert: ${courseName} is now available!`, 'course');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -206,6 +246,7 @@ app.post('/attendance', async (req, res) => {
             [student_id, course_id, attendance_date, status]
         );
         res.status(201).json({ id: result.insertId, student_id, course_id, attendance_date, status });
+        emitPulse(`📊 Attendance marked for a course!`, 'attendance');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -367,6 +408,9 @@ app.put('/library/:id/issue', async (req, res) => {
 
         // 🚀 Real-time Library Update
         io.emit('LIBRARY_UPDATE', { action: 'ISSUE', book_id: req.params.id, student_id });
+        const [[book]] = await connection.query("SELECT book_name FROM library WHERE id = ?", [req.params.id]);
+        const [[student_name]] = await connection.query("SELECT name FROM student WHERE id = ?", [student_id]);
+        emitPulse(`📚 ${student_name.name} borrowed '${book.book_name}'`, 'library');
 
         res.json({ message: "Book issued successfully" });
     } catch (err) { 
