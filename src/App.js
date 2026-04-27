@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import axios from "axios";
+import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
 import ThemeProvider from "./context/ThemeContext";
@@ -38,6 +39,7 @@ import CampusNavigator from "./components/CampusNavigator";
 import PlacementHub from "./components/PlacementHub";
 import FacultyConnect from "./components/FacultyConnect";
 import ExamIntelligence from "./components/ExamIntelligence";
+import EmergencySOS from "./components/EmergencySOS";
 import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings, Target, Microscope, Landmark, ShieldCheck } from "lucide-react";
 import "./App.css";
 
@@ -128,6 +130,7 @@ const StudentManagement = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [socket, setSocket] = useState(null);
   const baseUrl = "http://localhost:8080";
 
   const userRole = localStorage.getItem("role") || "student";
@@ -137,6 +140,7 @@ const StudentManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [currentSosPopup, setCurrentSosPopup] = useState(null);
   const [courseSearchTerm, setCourseSearchTerm] = useState("");
   const [notification, setNotification] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState({
@@ -154,6 +158,25 @@ const StudentManagement = () => {
     const raw = localStorage.getItem("broadcast_msg");
     try { return JSON.parse(raw); } catch { return raw; }
   });
+
+  useEffect(() => {
+    const newSocket = io(baseUrl);
+    setSocket(newSocket);
+
+    newSocket.on("SOS_ALERT", (data) => {
+      showNotification(`🚨 REAL-TIME SOS: ${data.studentName} - ${data.issue}`, "urgent");
+      if (isAdmin) {
+        setCurrentSosPopup(data);
+      }
+      fetchSOSAlerts();
+    });
+
+    newSocket.on("LIBRARY_UPDATE", (data) => {
+      showNotification(`📚 Library Activity: Book ${data.action === 'ISSUE' ? 'Issued' : 'Returned'}`);
+    });
+
+    return () => newSocket.close();
+  }, [baseUrl]);
 
   useEffect(() => {
     const checkBroadcast = () => {
@@ -237,19 +260,17 @@ const StudentManagement = () => {
     fetchAllData();
   }, [fetchStudents, fetchCourses]);
 
-  // Poll SOS alerts for admin every 5 seconds
-  useEffect(() => {
+  const fetchSOSAlerts = useCallback(async () => {
     if (!isAdmin) return;
-    const fetchAlerts = async () => {
-      try {
-        const res = await axios.get(`${baseUrl}/sos`);
-        setSosAlerts(res.data);
-      } catch (e) { /* silent */ }
-    };
-    fetchAlerts();
-    const interval = setInterval(fetchAlerts, 5000);
-    return () => clearInterval(interval);
-  }, [isAdmin, baseUrl]);
+    try {
+      const res = await axios.get(`${baseUrl}/sos`);
+      setSosAlerts(res.data);
+    } catch (e) { /* silent */ }
+  }, [baseUrl, isAdmin]);
+
+  useEffect(() => {
+    fetchSOSAlerts();
+  }, [fetchSOSAlerts]);
 
   // Flash notification message for 3 seconds
   const showNotification = (message) => {
@@ -759,6 +780,13 @@ const StudentManagement = () => {
               <ShieldCheck size={16} style={{ marginRight: '0.5rem' }} /> Mock Exams 📝
             </button>
             <button
+              className={activeTab === "food" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'food' ? 'linear-gradient(135deg, #f59e0b, #ef4444)' : 'rgba(255,255,255,0.05)', border: activeTab === 'food' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("food")}
+            >
+              <Coffee size={16} style={{ marginRight: '0.5rem' }} /> Food Hub 🍱
+            </button>
+            <button
               className={activeTab === "utilities" ? "primary" : "secondary"}
               style={{ width: 'auto', background: activeTab === 'utilities' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)', border: activeTab === 'utilities' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
               onClick={() => setActiveTab("utilities")}
@@ -881,6 +909,38 @@ const StudentManagement = () => {
                     <p style={{ margin: 0 }}>This ID is a <strong>Verified Digital Asset</strong>. It integrates with classroom NFC terminals, library RFID scanners, and the Smart Canteen wallet.</p>
                   </div>
                 </div>
+                
+                {/* Admin ID Card Management */}
+                {isAdmin && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', width: '100%', maxWidth: '600px' }}
+                  >
+                    <h4 style={{ color: 'white', marginBottom: '1rem', fontSize: '0.9rem' }}>🛡️ Administrative Control: ID Card Status</h4>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      {['Valid', 'Expired', 'Blocked', 'Pending'].map(status => (
+                        <button
+                          key={status}
+                          onClick={async () => {
+                            try {
+                              await axios.put(`${baseUrl}/students/${selectedStudentId || students[0]?.id}/id-card`, { status });
+                              fetchStudents();
+                              showNotification(`ID card status for ${students.find(s => s.id == (selectedStudentId || students[0]?.id))?.name} set to ${status}`);
+                            } catch (e) { console.error(e); }
+                          }}
+                          style={{ 
+                            padding: '0.6rem 1.2rem', borderRadius: '10px', border: 'none', 
+                            background: (students.find(s => s.id == (selectedStudentId || students[0]?.id))?.id_card_status || 'Valid') === status ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                            color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold'
+                          }}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
 
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '600px', overflowY: 'auto' }}>
                   <h4 style={{ color: 'white', fontSize: '0.9rem', marginBottom: '0.5rem' }}>📇 Campus Directory</h4>
@@ -1219,11 +1279,80 @@ const StudentManagement = () => {
               </section>
             </motion.div>
           )}
+
+          {activeTab === "food" && (
+            <motion.div key="food" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
+              <section className="card" style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}>
+                <SmartCanteen studentWallet={450} />
+              </section>
+            </motion.div>
+          )}
         </AnimatePresence>
       </motion.div>
 
       <ChatBot />
       {!isAdmin && <PeerTutorSOS />}
+      <EmergencySOS />
+
+      {/* SOS Emergency Popup */}
+      <AnimatePresence>
+        {currentSosPopup && isAdmin && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)', zIndex: 99999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem'
+          }}>
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, rotateX: 45 }}
+              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+              exit={{ scale: 0.5, opacity: 0, rotateX: -45 }}
+              style={{
+                width: '100%', maxWidth: '500px', background: '#1a1a1a',
+                borderRadius: '32px', border: '2px solid #ef4444', overflow: 'hidden',
+                boxShadow: '0 0 50px rgba(239, 68, 68, 0.5)'
+              }}
+            >
+              <div style={{ background: '#ef4444', padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🚨</div>
+                <h2 style={{ color: 'white', margin: 0, fontSize: '1.5rem', fontWeight: '900', letterSpacing: '1px' }}>EMERGENCY ALERT</h2>
+                <motion.div 
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.1)' }}
+                />
+              </div>
+              <div style={{ padding: '2.5rem', textAlign: 'center' }}>
+                <div style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>{currentSosPopup.studentName}</div>
+                <div style={{ color: '#ef4444', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '1.5rem', textTransform: 'uppercase' }}>Need Help Instantly</div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', marginBottom: '2rem', fontStyle: 'italic', lineHeight: '1.6' }}>
+                  "{currentSosPopup.issue}"
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await axios.put(`${baseUrl}/sos/${currentSosPopup.id}/resolve`);
+                        setCurrentSosPopup(null);
+                        fetchSOSAlerts();
+                        showNotification("SOS Alert resolved successfully.");
+                      } catch (e) { console.error(e); }
+                    }}
+                    style={{ flex: 1, padding: '1rem', borderRadius: '16px', border: 'none', background: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}
+                  >
+                    Quick Resolve
+                  </button>
+                  <button 
+                    onClick={() => setCurrentSosPopup(null)}
+                    style={{ flex: 1, padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Student Profile Modal */}
       <AnimatePresence>

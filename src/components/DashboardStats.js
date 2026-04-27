@@ -31,6 +31,8 @@ const DashboardStats = () => {
     { label: 'Active SOS', value: stats.activeAlerts, icon: '🚨', color: stats.activeAlerts > 0 ? '#ef4444' : '#22c55e', gradient: stats.activeAlerts > 0 ? 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))' : 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))' },
     { label: 'Upcoming Returns', value: stats.upcomingReturns, icon: '📅', color: '#f59e0b', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))' },
     { label: 'Overdue Books', value: stats.overdueReturns, icon: '⏰', color: stats.overdueReturns > 0 ? '#ef4444' : '#22c55e', gradient: stats.overdueReturns > 0 ? 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))' : 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))' },
+    { label: 'Placed Students', value: stats.placedStudents, icon: '🎓', color: '#10b981', gradient: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' },
+    { label: 'Active Drives', value: stats.activeDrives, icon: '🚀', color: '#8b5cf6', gradient: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05))' },
   ];
 
   return (

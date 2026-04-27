@@ -173,14 +173,15 @@ const DigitalID = ({ student }) => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%' }} /> {studentStatus}
+                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: student?.id_card_status === 'Valid' ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ width: '6px', height: '6px', background: student?.id_card_status === 'Valid' ? '#10b981' : '#ef4444', borderRadius: '50%' }} /> 
+                  {student?.id_card_status?.toUpperCase() || 'VALID'}
                 </span>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.65rem', color: 'white', opacity: 0.8 }}>Mob: +91 {student?.phone || 'N/A'}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Verified Entity</div>
-                <div style={{ fontSize: '0.7rem', color: 'white', fontWeight: 'bold' }}>B.Tech CSE</div>
+                <div style={{ fontSize: '0.7rem', color: 'white', fontWeight: 'bold' }}>{student?.id_card_status === 'Valid' ? 'B.Tech CSE' : 'ACCESS REVOKED'}</div>
               </div>
             </div>
           </div>

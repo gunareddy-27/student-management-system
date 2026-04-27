@@ -3,6 +3,10 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 
 const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+    cors: { origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }
+});
 const port = 8080;
 
 // Middleware
@@ -20,6 +24,22 @@ const dbConfig = {
 };
 
 const pool = mysql.createPool(dbConfig);
+
+// Socket.io Connection Logic
+io.on('connection', (socket) => {
+    console.log('⚡ New client connected:', socket.id);
+    socket.on('disconnect', () => console.log('🔥 Client disconnected'));
+});
+
+// Helper for System Logging
+const auditLog = async (action, role, metadata) => {
+    try {
+        await pool.query(
+            "INSERT INTO system_logs (action, user_role, metadata) VALUES (?, ?, ?)",
+            [action, role || 'system', JSON.stringify(metadata || {})]
+        );
+    } catch (e) { console.error('Logging Error:', e); }
+};
 
 pool.getConnection()
     .then(connection => {
@@ -66,6 +86,15 @@ app.delete('/students/:id', async (req, res) => {
     try {
         await pool.query(`DELETE FROM student WHERE id = ?`, [req.params.id]);
         res.json({ message: "Student deleted" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Update student ID card status
+app.put('/students/:id/id-card', async (req, res) => {
+    const { status } = req.body;
+    try {
+        await pool.query('UPDATE student SET id_card_status = ? WHERE id = ?', [status, req.params.id]);
+        res.json({ message: `ID Card status updated to ${status}` });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -120,6 +149,10 @@ app.post('/sos', async (req, res) => {
             [studentName, issue, alertTime]
         );
         console.log(`🚨 SOS #${result.insertId}: ${studentName} - ${issue}`);
+        
+        // 🚀 Real-time SOS Alert
+        io.emit('SOS_ALERT', { id: result.insertId, studentName, issue, alertTime });
+        
         res.json({ success: true, message: 'SOS Alert sent!', id: result.insertId });
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -288,11 +321,12 @@ app.get('/library', async (req, res) => {
 
 // Add a book
 app.post('/library', async (req, res) => {
-    const { book_name, author, isbn } = req.body;
+    const { book_name, author, isbn, category, cover_image, description, location } = req.body;
     try {
         const [result] = await pool.query(
-            `INSERT INTO library (book_name, author, isbn) VALUES (?, ?, ?)`,
-            [book_name, author, isbn]
+            `INSERT INTO library (book_name, author, isbn, category, cover_image, description, location, total_copies, available_copies) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)`,
+            [book_name, author, isbn, category || 'General', cover_image, description, location || 'Main Floor']
         );
         res.status(201).json({ id: result.insertId, book_name, author, isbn });
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -301,23 +335,131 @@ app.post('/library', async (req, res) => {
 // Issue a book to a student
 app.put('/library/:id/issue', async (req, res) => {
     const { student_id, return_date } = req.body;
+    const connection = await pool.getConnection();
     try {
-        await pool.query(
-            `UPDATE library SET student_id = ?, borrowed_date = CURDATE(), return_date = ? WHERE id = ?`,
+        await connection.beginTransaction();
+
+        // 🛡️ SECURITY CHECK: Valid Identity Card Required
+        const [[student]] = await connection.query("SELECT id_card_status FROM student WHERE id = ?", [student_id]);
+        if (!student) {
+            await connection.rollback();
+            return res.status(404).json({ error: "Student not found" });
+        }
+        if (student.id_card_status !== 'Valid') {
+            await connection.rollback();
+            return res.status(403).json({ error: `ISSUE DENIED: Student has an ${student.id_card_status} Identity Card. Access revoked.` });
+        }
+
+        // Update library table
+        await connection.query(
+            `UPDATE library SET student_id = ?, borrowed_date = CURDATE(), return_date = ?, available_copies = available_copies - 1 WHERE id = ?`,
             [student_id, return_date, req.params.id]
         );
-        res.json({ message: "Book issued" });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        
+        // Record in history
+        await connection.query(
+            `INSERT INTO library_history (book_id, student_id, borrow_date) VALUES (?, ?, CURDATE())`,
+            [req.params.id, student_id]
+        );
+
+        await auditLog('ISSUE_BOOK', 'admin', { book_id: req.params.id, student_id });
+        await connection.commit();
+
+        // 🚀 Real-time Library Update
+        io.emit('LIBRARY_UPDATE', { action: 'ISSUE', book_id: req.params.id, student_id });
+
+        res.json({ message: "Book issued successfully" });
+    } catch (err) { 
+        await connection.rollback();
+        res.status(500).json({ error: err.message }); 
+    } finally {
+        connection.release();
+    }
 });
 
 // Return a book
 app.put('/library/:id/return', async (req, res) => {
+    const connection = await pool.getConnection();
     try {
-        await pool.query(
-            `UPDATE library SET student_id = NULL, borrowed_date = NULL, return_date = NULL WHERE id = ?`,
+        await connection.beginTransaction();
+
+        const [[book]] = await connection.query("SELECT * FROM library WHERE id = ?", [req.params.id]);
+        if (!book) {
+            await connection.rollback();
+            return res.status(404).json({ error: "Book not found" });
+        }
+
+        const student_id = book.student_id;
+        const dueDate = new Date(book.return_date);
+        const today = new Date();
+        let fine = 0;
+        if (today > dueDate) {
+            const diffTime = Math.abs(today - dueDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            fine = diffDays * 10; // ₹10 per day
+        }
+
+        // Update library table
+        await connection.query(
+            `UPDATE library SET student_id = NULL, borrowed_date = NULL, return_date = NULL, available_copies = available_copies + 1 WHERE id = ?`,
             [req.params.id]
         );
-        res.json({ message: "Book returned" });
+
+        // Update history
+        await connection.query(
+            `UPDATE library_history SET return_date = CURDATE(), fine_paid = ? WHERE book_id = ? AND student_id = ? AND return_date IS NULL`,
+            [fine, req.params.id, student_id]
+        );
+
+        await auditLog('RETURN_BOOK', 'admin', { book_id: req.params.id, student_id, fine });
+        await connection.commit();
+
+        // 🚀 Real-time Library Update
+        io.emit('LIBRARY_UPDATE', { action: 'RETURN', book_id: req.params.id, student_id });
+
+        res.json({ message: "Book returned", fine });
+    } catch (err) { 
+        await connection.rollback();
+        res.status(500).json({ error: err.message }); 
+    } finally {
+        connection.release();
+    }
+});
+
+// Get library history
+app.get('/library/history', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT h.*, l.book_name, l.author, s.name AS student_name
+            FROM library_history h
+            JOIN library l ON h.book_id = l.id
+            JOIN student s ON h.student_id = s.id
+            ORDER BY h.borrow_date DESC
+        `);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Reservations
+app.post('/library/reserve', async (req, res) => {
+    const { book_id, student_id } = req.body;
+    try {
+        await pool.query(`INSERT INTO library_reservations (book_id, student_id) VALUES (?, ?)`, [book_id, student_id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/library/reservations', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT r.*, l.book_name, s.name AS student_name
+            FROM library_reservations r
+            JOIN library l ON r.book_id = l.id
+            JOIN student s ON r.student_id = s.id
+            WHERE r.status = 'Pending'
+            ORDER BY r.request_date ASC
+        `);
+        res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -449,6 +591,9 @@ app.get('/dashboard/stats', async (req, res) => {
         const [[upcomingReturns]] = await pool.query(`SELECT COUNT(*) AS count FROM library WHERE student_id IS NOT NULL AND return_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) AND return_date >= CURDATE()`);
         const [[overdueReturns]] = await pool.query(`SELECT COUNT(*) AS count FROM library WHERE student_id IS NOT NULL AND return_date < CURDATE()`);
 
+        const [[placed]] = await pool.query(`SELECT COUNT(*) AS count FROM placement_applications WHERE status = 'Selected'`);
+        const [[drives]] = await pool.query(`SELECT COUNT(*) AS count FROM placement_drives WHERE status = 'Active'`);
+
         res.json({
             totalStudents: students.count,
             totalCourses: courses.count,
@@ -460,7 +605,9 @@ app.get('/dashboard/stats', async (req, res) => {
             activeAlerts: activeAlerts.count,
             atRiskStudents: atRisk.count,
             upcomingReturns: upcomingReturns.count,
-            overdueReturns: overdueReturns.count
+            overdueReturns: overdueReturns.count,
+            placedStudents: placed.count,
+            activeDrives: drives.count
         });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -616,11 +763,120 @@ app.post('/chatbot/query', async (req, res) => {
     }
 });
 
+// ========================================
+// 13. PLACEMENT HUB
+// ========================================
+
+// Get all placement drives
+app.get('/placements/drives', async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM placement_drives ORDER BY drive_date ASC");
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Apply for a drive
+app.post('/placements/apply', async (req, res) => {
+    const { drive_id, student_id } = req.body;
+    try {
+        await pool.query(
+            "INSERT INTO placement_applications (drive_id, student_id) VALUES (?, ?)",
+            [drive_id, student_id]
+        );
+        res.json({ success: true, message: "Application submitted" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get student applications
+app.get('/placements/applications/:studentId', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT a.*, d.company, d.role, d.package, d.drive_date
+            FROM placement_applications a
+            JOIN placement_drives d ON a.drive_id = d.id
+            WHERE a.student_id = ?
+            ORDER BY a.applied_date DESC
+        `, [req.params.studentId]);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get interview experiences
+app.get('/placements/experiences', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT e.*, s.name AS student_name
+            FROM placement_experiences e
+            JOIN student s ON e.student_id = s.id
+            ORDER BY e.created_at DESC
+        `);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Add interview experience
+app.post('/placements/experiences', async (req, res) => {
+    const { student_id, company, role, experience_text, rating } = req.body;
+    try {
+        await pool.query(
+            "INSERT INTO placement_experiences (student_id, company, role, experience_text, rating) VALUES (?, ?, ?, ?, ?)",
+            [student_id, company, role, experience_text, rating]
+        );
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Placement Analytics
+app.get('/placements/stats', async (req, res) => {
+    try {
+        const [[totalDrives]] = await pool.query("SELECT COUNT(*) as count FROM placement_drives");
+        const [[totalApps]] = await pool.query("SELECT COUNT(*) as count FROM placement_applications");
+        const [[selected]] = await pool.query("SELECT COUNT(*) as count FROM placement_applications WHERE status = 'Selected'");
+        const [[avgPackage]] = await pool.query("SELECT AVG(CAST(REPLACE(package, ' LPA', '') AS DECIMAL)) as avg FROM placement_drives");
+        
+        res.json({
+            totalDrives: totalDrives.count,
+            totalApplications: totalApps.count,
+            selectedStudents: selected.count,
+            averagePackage: avgPackage.avg ? avgPackage.avg.toFixed(1) + " LPA" : "N/A"
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get system logs
+app.get('/logs', async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM system_logs ORDER BY created_at DESC LIMIT 100");
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Database Backup (JSON Export)
+app.get('/admin/backup', async (req, res) => {
+    try {
+        const [students] = await pool.query("SELECT * FROM student");
+        const [courses] = await pool.query("SELECT * FROM course");
+        const [library] = await pool.query("SELECT * FROM library");
+        const [fees] = await pool.query("SELECT * FROM fee");
+        const [logs] = await pool.query("SELECT * FROM system_logs");
+        
+        const backup = {
+            timestamp: new Date().toISOString(),
+            version: "1.0",
+            data: { students, courses, library, fees, logs }
+        };
+        
+        res.setHeader('Content-disposition', 'attachment; filename=campus_backup.json');
+        res.setHeader('Content-type', 'application/json');
+        res.send(JSON.stringify(backup, null, 2));
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
     res.send('Student Management Backend — All Systems Operational');
 });
 
-app.listen(port, () => {
-    console.log(`🚀 Backend running on http://localhost:${port}`);
+http.listen(port, () => {
+    console.log(`🚀 SmarterCampus Real-time Server running at http://localhost:${port}`);
 });
