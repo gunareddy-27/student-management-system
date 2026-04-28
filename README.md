@@ -22,13 +22,13 @@ The platform follows a **Modular Micro-frontend Architecture** integrated with a
 ```mermaid
 graph TD
     User((Student)) -->|React Dashboard| Frontend[Frontend: React + Framer Motion]
-    Frontend -->|REST API| Gateway[API Gateway / Node.js Express]
+    Frontend -->|REST + WebSockets| Gateway[API Gateway / Spring Boot]
     
     subgraph AI_Engine [Intelligence Layer]
         AgentHub[Neural Orchestrator]
         StudyAI[Study Architect - NLP/LLM]
-        TempoAI[Smart Tempo - Time-Series Analysis]
-        CareerAI[Career Navigator - Random Forest]
+        RiskAI[Predictive Risk Analytics]
+        FinanceAI[Wallet Transaction Engine]
     end
     
     Gateway --> AI_Engine
@@ -39,17 +39,42 @@ graph TD
 
 ---
 
+## 2.1 🔄 Operational Data Flow
+This diagram illustrates how the system processes a typical student interaction (e.g., ordering from the Canteen).
+
+```mermaid
+sequenceDiagram
+    participant S as Student (React)
+    participant B as Backend (Spring Boot)
+    participant W as WebSocket (SockJS)
+    participant D as Database (MySQL)
+
+    S->>B: 1. POST /api/wallet/pay (Order Request)
+    B->>D: 2. Query Wallet Balance
+    D-->>B: Current Balance: ₹450
+    B->>D: 3. Deduct ₹110 & Log Transaction
+    B-->>S: 4. HTTP 200: Payment Successful
+    
+    Note over B,W: Broadcast triggered
+    B->>W: 5. STOMP Broadcast: 'CAMPUS_PULSE'
+    W-->>S: 6. Push Notification to all active users
+    
+    S->>B: 7. GET /api/students/profile (Update UI)
+    B-->>S: Return updated attendance/balance data
+```
+
+---
+
 ## 3. 🤖 AI/ML Implementation Strategy
 To ensure feasibility within a prototype scope, the following models and algorithms are utilized (simulated in frontend for demo, architected for backend):
 
 | Agent | AI/ML Model | Primary Input | Intended Output |
 | :--- | :--- | :--- | :--- |
 | **Study Architect** | NLP (Transformer-based) | Course Material / Queries | Simplified Concept Explanations |
-| **Smart Tempo** | Time-Series Forecasting | Attendance & Task Logs | Predicted Burnout & Schedule Healing |
-| **Career Navigator** | Random Forest / KNN | Skill Matrix & Grades | Job Match Scores (0-100%) |
+| **Risk Analytics** | Predictive Scoring | Attendance & Grades | At-Risk Student Flagging |
+| **Wallet Engine** | Secure Ledger | Transactions | Real-time Balance & Canteen Pay |
 | **Sentinel AI** | Sentiment Analysis (VADER) | Mood Check-ins | Wellness Intervention Triggers |
-| **Grant Scout** | Pattern Matching Algorithm | Student Profile | High-Probability Scholarship Lists |
-| **Research Catalyst** | TF-IDF / Summarization | Research Abstracts | Key Insight Synthesis |
+| **Smart Canteen** | Queue Optimization | Order Logs | Live Wait-Time Predictions |
 
 ---
 
@@ -87,14 +112,17 @@ erDiagram
 ## 5. ⚙️ Functional Modules & Implementation Status
 
 ### 🟢 Fully Implemented (Prototype Ready)
+*   **Spring Boot Backend**: Robust Java-based API with JWT Security.
+*   **Campus Pulse (WebSockets)**: Real-time global notifications and SOS alerts.
+*   **Smart Wallet & Canteen**: Digital financial layer for seamless campus payments.
+*   **Predictive Analytics**: AI-driven student risk identification.
 *   **AI Pavilion Dashboard**: Centralized hub for agent management.
-*   **Smart Automation Engine**: Trigger-based autonomous workflow simulator.
-*   **Digital ID Hub**: Scannable QR and RFID simulation.
+*   **Digital ID Hub**: Scannable QR-based attendance system.
 *   **Skill Master AI**: 12-week roadmap generator.
 
 ### 🟡 Partially Implemented / Simulated
 *   **Mood Intelligence**: Sentiment-based check-in UI (ML Model simulated).
-*   **Grant Autopilot**: Matching algorithm logic (Drafting simulated).
+*   **Resume Export**: Automated data aggregation for CV generation.
 *   **Neural Concept Explainer**: LLM-integrated prompt simulator.
 
 ---
@@ -108,9 +136,10 @@ The "18.5 hours saved" claim is based on a **theoretical efficiency model** (Pro
 ---
 
 ## 🛠️ 7. Technical Stack
-*   **Frontend**: React (Hooks, Context API), Framer Motion (Animations), Lucide Icons.
-*   **Backend**: Node.js / Express (Proposed Architecture).
+*   **Frontend**: React (Hooks, Context API), Framer Motion (Animations), Lucide Icons, STOMP/SockJS.
+*   **Backend**: Spring Boot 3.2.4 (Java 21), Spring Security, Hibernate (JPA).
 *   **Database**: MySQL (Relational Schema).
+*   **Architecture**: WebSocket (Real-time), JWT (Auth), REST (Data).
 *   **Design**: Glassmorphism / Neural Elegance Design System.
 
 ---

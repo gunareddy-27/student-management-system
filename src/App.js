@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import axios from "axios";
-import { io } from "socket.io-client";
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
 import ThemeProvider from "./context/ThemeContext";
@@ -164,36 +165,7 @@ const StudentManagement = () => {
   const [studySessions, setStudySessions] = useState([]);
   const [facultyPresence, setFacultyPresence] = useState({});
 
-  useEffect(() => {
-    const newSocket = io(baseUrl);
-    setSocket(newSocket);
 
-    newSocket.on("SOS_ALERT", (data) => {
-      showNotification(`🚨 REAL-TIME SOS: ${data.studentName} - ${data.issue}`, "urgent");
-      if (isAdmin) {
-        setCurrentSosPopup(data);
-      }
-      fetchSOSAlerts();
-    });
-
-    newSocket.on("LIBRARY_UPDATE", (data) => {
-      showNotification(`📚 Library Activity: Book ${data.action === 'ISSUE' ? 'Issued' : 'Returned'}`);
-    });
-
-    newSocket.on("CAMPUS_PULSE", (data) => {
-      setActivities(prev => [data, ...prev].slice(0, 15));
-    });
-
-    newSocket.on("STUDY_JAM_UPDATE", (data) => {
-      setStudySessions(data);
-    });
-
-    newSocket.on("FACULTY_UPDATE", (data) => {
-      setFacultyPresence(data);
-    });
-
-    return () => newSocket.close();
-  }, [baseUrl]);
 
   useEffect(() => {
     const checkBroadcast = () => {
@@ -284,6 +256,35 @@ const StudentManagement = () => {
       setSosAlerts(res.data);
     } catch (e) { /* silent */ }
   }, [baseUrl, isAdmin]);
+
+  useEffect(() => {
+    const sock = new SockJS(`${baseUrl}/ws-campus`);
+    const client = new Client({
+      webSocketFactory: () => sock,
+      onConnect: () => {
+        console.log('Connected to Campus WebSocket');
+        client.subscribe('/topic/notifications', (message) => {
+          const data = JSON.parse(message.body);
+          if (data.type === "SOS_ALERT") {
+             showNotification(`🚨 REAL-TIME SOS: ${data.studentName} - ${data.issue}`, "urgent");
+             if (isAdmin) setCurrentSosPopup(data);
+             fetchSOSAlerts();
+          } else if (data.type === "CAMPUS_PULSE") {
+             setActivities(prev => [data, ...prev].slice(0, 15));
+          } else {
+             showNotification(data.message || "New campus activity recorded");
+          }
+        });
+      },
+    });
+
+    client.activate();
+    setSocket(client);
+
+    return () => {
+      if (client) client.deactivate();
+    };
+  }, [baseUrl, isAdmin, fetchSOSAlerts]);
 
   useEffect(() => {
     fetchSOSAlerts();

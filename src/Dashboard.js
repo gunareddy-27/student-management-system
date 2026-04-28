@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import SystemStats from "./components/SystemStats";
+import WalletBalance from "./components/WalletBalance";
 import "./Dashboard.css";
 
 const Dashboard = () => {
@@ -140,6 +141,14 @@ const Dashboard = () => {
             style={{ padding: '0' }}
           >
             <SystemStats />
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+          >
+            <WalletBalance />
           </motion.div>
 
           <motion.div 
