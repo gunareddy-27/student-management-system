@@ -9,10 +9,25 @@ const Login = () => {
   const [role, setRole] = useState("student");
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    localStorage.setItem("user", email);
-    localStorage.setItem("role", role);
-    navigate("/dashboard");
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("user", data.username);
+        localStorage.setItem("role", data.role);
+        navigate("/dashboard");
+      } else {
+        alert(data.message || "Login failed");
+      }
+    } catch (err) {
+      alert("Error connecting to server");
+    }
   };
 
   return (

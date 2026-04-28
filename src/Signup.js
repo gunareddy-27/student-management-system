@@ -9,10 +9,23 @@ const Signup = () => {
   const [role, setRole] = useState("student");
   const navigate = useNavigate();
 
-  const handleSignup = () => {
-    localStorage.setItem("user", email);
-    localStorage.setItem("role", role);
-    navigate("/dashboard");
+  const handleSignup = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: email.split('@')[0], email, password, role })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert("Registration successful! Please login.");
+        navigate("/login");
+      } else {
+        alert(data.message || "Signup failed");
+      }
+    } catch (err) {
+      alert("Error connecting to server");
+    }
   };
 
   return (

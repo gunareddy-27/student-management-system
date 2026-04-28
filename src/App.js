@@ -40,7 +40,10 @@ import PlacementHub from "./components/PlacementHub";
 import FacultyConnect from "./components/FacultyConnect";
 import ExamIntelligence from "./components/ExamIntelligence";
 import EmergencySOS from "./components/EmergencySOS";
-import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings, Target, Microscope, Landmark, ShieldCheck } from "lucide-react";
+import SkillMasterAI from "./components/SkillMasterAI";
+import MultiAgentSystem from "./components/MultiAgentSystem";
+import ProjectDefense from "./components/ProjectDefense";
+import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings, Target, Microscope, Landmark, ShieldCheck, BrainCircuit, FileBarChart } from "lucide-react";
 import "./App.css";
 
 // A simple Modal component for delete confirmation
@@ -801,6 +804,20 @@ const StudentManagement = () => {
               <Coffee size={16} style={{ marginRight: '0.5rem' }} /> Food Hub 🍱
             </button>
             <button
+              className={activeTab === "agents" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'agents' ? 'linear-gradient(135deg, #8b5cf6, #d946ef)' : 'rgba(255,255,255,0.05)', border: activeTab === 'agents' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("agents")}
+            >
+              <Sparkles size={16} style={{ marginRight: '0.5rem' }} /> AI Pavilion ✨
+            </button>
+            <button
+              className={activeTab === "defense" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'defense' ? 'linear-gradient(135deg, #3b82f6, #2dd4bf)' : 'rgba(255,255,255,0.05)', border: activeTab === 'defense' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("defense")}
+            >
+              <FileBarChart size={16} style={{ marginRight: '0.5rem' }} /> Project Blueprint 📊
+            </button>
+            <button
               className={activeTab === "utilities" ? "primary" : "secondary"}
               style={{ width: 'auto', background: activeTab === 'utilities' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)', border: activeTab === 'utilities' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
               onClick={() => setActiveTab("utilities")}
@@ -1340,6 +1357,30 @@ const StudentManagement = () => {
               <section className="card" style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}>
                 <SmartCanteen socket={socket} studentWallet={450} />
               </section>
+            </motion.div>
+          )}
+
+          {activeTab === "agents" && (
+            <motion.div 
+              key="agents" 
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0, scale: 0.98 }}
+              style={{ width: '100%' }}
+            >
+              <MultiAgentSystem />
+            </motion.div>
+          )}
+
+          {activeTab === "defense" && (
+            <motion.div 
+              key="defense" 
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0, scale: 0.98 }}
+              style={{ width: '100%' }}
+            >
+              <ProjectDefense />
             </motion.div>
           )}
         </AnimatePresence>
