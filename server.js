@@ -13,6 +13,34 @@ const port = 8080;
 app.use(cors());
 app.use(express.json());
 
+// ========================================
+// 0. AUTH ENDPOINTS (Simulated for Startup)
+// ========================================
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    // Simple mock auth
+    res.json({
+        access_token: "mock-token-" + Date.now(),
+        username: email.split('@')[0],
+        role: email.includes('admin') ? 'admin' : 'student'
+    });
+});
+
+app.post('/api/auth/signup', async (req, res) => {
+    res.json({ success: true, message: "User registered successfully" });
+});
+
+// ========================================
+// 0.1 WALLET ENDPOINTS
+// ========================================
+app.get('/api/wallet/balance', async (req, res) => {
+    res.json({ balance: 500 });
+});
+
+app.post('/api/wallet/topup', async (req, res) => {
+    res.json({ success: true, message: "Wallet recharged" });
+});
+
 const dbConfig = {
     host: 'localhost',
     user: 'root',
@@ -24,6 +52,58 @@ const dbConfig = {
 };
 
 const pool = mysql.createPool(dbConfig);
+
+// --- STARTUP MIGRATION ---
+(async () => {
+    try {
+        const connection = await pool.getConnection();
+        console.log('🛠️ Running Startup Migrations...');
+        
+        // Add campus_coins and tenant_id to student table if missing
+        const [cols] = await connection.query("SHOW COLUMNS FROM student");
+        const colNames = cols.map(c => c.Field);
+        
+        if (!colNames.includes('campus_coins')) {
+            await connection.query("ALTER TABLE student ADD COLUMN campus_coins INT DEFAULT 0");
+            console.log('✅ Added campus_coins column');
+        }
+        if (!colNames.includes('tenant_id')) {
+            await connection.query("ALTER TABLE student ADD COLUMN tenant_id VARCHAR(50) DEFAULT 'default'");
+            console.log('✅ Added tenant_id column');
+        }
+        if (!colNames.includes('skill_matrix')) {
+            await connection.query("ALTER TABLE student ADD COLUMN skill_matrix JSON DEFAULT NULL");
+            console.log('✅ Added skill_matrix column');
+        }
+
+        // Create new tables for Startup features
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS tenants (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                subscription_tier VARCHAR(20) DEFAULT 'FREE',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS mock_interviews (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                student_id INT,
+                role VARCHAR(100),
+                feedback TEXT,
+                score INT,
+                transcript JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        connection.release();
+        console.log('✨ Migrations Completed.');
+    } catch (err) {
+        console.error('❌ Migration Error:', err.message);
+    }
+})();
 
 // Socket.io Connection Logic
 let activeStudySessions = []; // [{studentName, subject, socketId}]
@@ -805,6 +885,82 @@ app.post('/chatbot/query', async (req, res) => {
         console.error("Chatbot Error:", err);
         res.json({ response: "I encountered an error while processing your request. My neural links might be unstable!" });
     }
+});
+
+// ========================================
+// 12.1 CAMPUS COINS & ECONOMY (New Feature)
+// ========================================
+app.post('/campus-coins/earn', async (req, res) => {
+    const { student_id, amount, reason } = req.body;
+    try {
+        await pool.query(
+            "UPDATE student SET campus_coins = campus_coins + ? WHERE id = ?",
+            [amount, student_id]
+        );
+        emitPulse(`🪙 Student #${student_id} earned ${amount} coins for ${reason}!`, 'reward');
+        res.json({ success: true, message: `Earned ${amount} coins` });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/campus-coins/spend', async (req, res) => {
+    const { student_id, amount, item } = req.body;
+    try {
+        const [[student]] = await pool.query("SELECT campus_coins FROM student WHERE id = ?", [student_id]);
+        if (student.campus_coins < amount) {
+            return res.status(400).json({ error: "Insufficient CampusCoins balance" });
+        }
+        await pool.query(
+            "UPDATE student SET campus_coins = campus_coins - ? WHERE id = ?",
+            [amount, student_id]
+        );
+        emitPulse(`🛍️ Student spent ${amount} coins on ${item}`, 'transaction');
+        res.json({ success: true, message: `Spent ${amount} coins` });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ========================================
+// 12.2 AI CAREER ARCHITECT (New Feature)
+// ========================================
+app.post('/ai/mock-interview', async (req, res) => {
+    const { student_id, role } = req.body;
+    try {
+        // Simulated AI Interview Feedback
+        const feedback = `Excellent articulation of technical concepts for the ${role} position. Your explanation of system design was impressive, though you could focus more on edge-case handling.`;
+        const score = Math.floor(Math.random() * (95 - 75 + 1) + 75);
+        
+        const [result] = await pool.query(
+            "INSERT INTO mock_interviews (student_id, role, feedback, score) VALUES (?, ?, ?, ?)",
+            [student_id, role, feedback, score]
+        );
+        
+        res.json({ 
+            id: result.insertId,
+            feedback,
+            score,
+            recommendation: "Focus on improving Data Structures and Algorithm speed."
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/ai/mock-interview/:studentId', async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            "SELECT * FROM mock_interviews WHERE student_id = ? ORDER BY created_at DESC",
+            [req.params.studentId]
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/ai/update-skills', async (req, res) => {
+    const { student_id, skills } = req.body; // skills is JSON object
+    try {
+        await pool.query(
+            "UPDATE student SET skill_matrix = ? WHERE id = ?",
+            [JSON.stringify(skills), student_id]
+        );
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ========================================

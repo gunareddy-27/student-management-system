@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import axios from "axios";
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
 import ThemeProvider from "./context/ThemeContext";
@@ -44,7 +43,8 @@ import EmergencySOS from "./components/EmergencySOS";
 import SkillMasterAI from "./components/SkillMasterAI";
 import MultiAgentSystem from "./components/MultiAgentSystem";
 import ProjectDefense from "./components/ProjectDefense";
-import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings, Target, Microscope, Landmark, ShieldCheck, BrainCircuit, FileBarChart } from "lucide-react";
+import CareerArchitect from "./components/CareerArchitect";
+import { Bell, Sparkles, CreditCard, PartyPopper, Briefcase, Coffee, Map as MapIcon, Settings, Target, Microscope, Landmark, ShieldCheck, BrainCircuit, FileBarChart, Globe } from "lucide-react";
 import "./App.css";
 
 // A simple Modal component for delete confirmation
@@ -131,6 +131,7 @@ const StudentManagement = () => {
   const [editingCourse, setEditingCourse] = useState(null);
   const [activeTab, setActiveTab] = useState("management");
   const [activeUtility, setActiveUtility] = useState("canteen");
+  const [currentTenant, setCurrentTenant] = useState({ id: 'mit', name: 'MIT World Peace University' });
   const [focusMode, setFocusMode] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
@@ -258,31 +259,28 @@ const StudentManagement = () => {
   }, [baseUrl, isAdmin]);
 
   useEffect(() => {
-    const sock = new SockJS(`${baseUrl}/ws-campus`);
-    const client = new Client({
-      webSocketFactory: () => sock,
-      onConnect: () => {
-        console.log('Connected to Campus WebSocket');
-        client.subscribe('/topic/notifications', (message) => {
-          const data = JSON.parse(message.body);
-          if (data.type === "SOS_ALERT") {
-             showNotification(`🚨 REAL-TIME SOS: ${data.studentName} - ${data.issue}`, "urgent");
-             if (isAdmin) setCurrentSosPopup(data);
-             fetchSOSAlerts();
-          } else if (data.type === "CAMPUS_PULSE") {
-             setActivities(prev => [data, ...prev].slice(0, 15));
-          } else {
-             showNotification(data.message || "New campus activity recorded");
-          }
-        });
-      },
+    const socketInstance = io(baseUrl);
+    
+    socketInstance.on('connect', () => {
+      console.log('Connected to Campus Socket.io');
     });
 
-    client.activate();
-    setSocket(client);
+    socketInstance.on('CAMPUS_PULSE', (data) => {
+      if (data.type === "SOS_ALERT") {
+         showNotification(`🚨 REAL-TIME SOS: ${data.studentName} - ${data.issue}`, "urgent");
+         if (isAdmin) setCurrentSosPopup(data);
+         fetchSOSAlerts();
+      } else if (data.type === "CAMPUS_PULSE" || data.type === "canteen" || data.type === "coins") {
+         setActivities(prev => [data, ...prev].slice(0, 15));
+      } else {
+         showNotification(data.message || "New campus activity recorded");
+      }
+    });
+
+    setSocket(socketInstance);
 
     return () => {
-      if (client) client.deactivate();
+      if (socketInstance) socketInstance.disconnect();
     };
   }, [baseUrl, isAdmin, fetchSOSAlerts]);
 
@@ -559,6 +557,11 @@ const StudentManagement = () => {
                 AI Intelligence & DB Link: <span style={{ color: '#10b981', fontWeight: 'bold' }}>Active</span>
               </div>
             </div>
+            
+            <div className="tenant-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', cursor: 'pointer' }}>
+               <Globe size={16} color="#3b82f6" />
+               <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{currentTenant.name}</span>
+            </div>
             <nav className="nav-links" style={{ alignItems: 'center' }}>
               <Link to="/student-management">Dashboard</Link>
               <div style={{ position: 'relative' }}>
@@ -798,6 +801,13 @@ const StudentManagement = () => {
               <ShieldCheck size={16} style={{ marginRight: '0.5rem' }} /> Mock Exams 📝
             </button>
             <button
+              className={activeTab === "career" ? "primary" : "secondary"}
+              style={{ width: 'auto', background: activeTab === 'career' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)', border: activeTab === 'career' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setActiveTab("career")}
+            >
+              <Briefcase size={16} style={{ marginRight: '0.5rem' }} /> Career AI 🚀
+            </button>
+            <button
               className={activeTab === "food" ? "primary" : "secondary"}
               style={{ width: 'auto', background: activeTab === 'food' ? 'linear-gradient(135deg, #f59e0b, #ef4444)' : 'rgba(255,255,255,0.05)', border: activeTab === 'food' ? 'none' : '1px solid rgba(255,255,255,0.1)' }}
               onClick={() => setActiveTab("food")}
@@ -889,6 +899,17 @@ const StudentManagement = () => {
               exit={{ opacity: 0, scale: 0.95 }}
             >
               <AIIntelligence />
+            </motion.div>
+          )}
+
+          {activeTab === "career" && (
+            <motion.div
+              key="career"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <CareerArchitect studentId={selectedStudentId || students[0]?.id || 1} />
             </motion.div>
           )}
 

@@ -513,6 +513,7 @@ const SmartCanteen = ({ socket, studentWallet = 450 }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                        {[
                          { id: 'wallet', name: 'Smart Wallet', sub: `Bal: ₹${balance.toFixed(2)}`, icon: <Wallet size={20}/> },
+                         { id: 'coins', name: 'CampusCoins', sub: `Pay with rewards`, icon: <Zap size={20} color="#f59e0b" fill="#f59e0b" /> },
                          { id: 'card', name: 'Credit / Debit Card', sub: 'Visa, Mastercard', icon: <CreditCard size={20}/> },
                          { id: 'upi', name: 'UPI Payment', sub: 'Google Pay, PhonePe', icon: <Navigation size={20} style={{ transform: 'rotate(45deg)' }}/> }
                        ].map(method => (

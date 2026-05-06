@@ -205,6 +205,15 @@ const DigitalID = ({ student }) => {
             <div style={{ position: 'absolute', top: '2rem', right: '2rem', width: '40px', height: '30px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', borderRadius: '6px', opacity: 0.6, border: '1px solid rgba(255,255,255,0.2)' }}>
                <div style={{ position: 'absolute', inset: '4px', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '2px' }} />
             </div>
+
+            {/* CampusCoins Display */}
+            <div style={{ position: 'absolute', top: '5rem', right: '2rem', textAlign: 'right' }}>
+               <div style={{ fontSize: '0.55rem', color: 'rgba(245, 158, 11, 0.6)', fontWeight: 'bold', textTransform: 'uppercase' }}>CampusCoins</div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                 <Zap size={14} color="#f59e0b" fill="#f59e0b" />
+                 <span style={{ fontSize: '1.2rem', fontWeight: '900', color: '#f59e0b', textShadow: '0 0 10px rgba(245, 158, 11, 0.3)' }}>{student?.campus_coins || 0}</span>
+               </div>
+            </div>
           </div>
 
           {/* BACK SIDE */}
